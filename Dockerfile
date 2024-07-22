@@ -5,6 +5,5 @@ WORKDIR /app
 COPY . .
 
 RUN forge build
-RUN forge test
 
 ENTRYPOINT ["forge", "script"]

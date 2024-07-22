@@ -1,13 +1,12 @@
 [profile.default]
 src = "src"
-libs = ["node_modules", "lib"]
+libs = ["lib"]
 remappings = [
     "@ensdomains/=node_modules/@ensdomains/",
-    "@openzeppelin/=node_modules/@openzeppelin/",
-    "@uniswap/=node_modules/@uniswap/",
+    "@openzeppelin/=lib/openzeppelin-contracts/",
+    "@uniswap/v3-core/=lib/v3-core/",
+    "@uniswap/v3-periphery/=lib/v3-periphery/",
     "base64-sol/=node_modules/base64-sol/",
-    "hardhat-deploy/=node_modules/hardhat-deploy/",
-    "hardhat/=node_modules/hardhat/",
 ]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

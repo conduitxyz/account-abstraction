@@ -1,6 +1,5 @@
 [profile.default]
 src = "src"
-out = "artifacts"
 libs = ["node_modules", "lib"]
 remappings = [
     "@ensdomains/=node_modules/@ensdomains/",

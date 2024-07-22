@@ -5,6 +5,7 @@ import {Script} from "forge-std/Script.sol";
 
 import {EntryPoint} from "src/core/EntryPoint.sol";
 import {SimpleAccountFactory} from "src/samples/SimpleAccountFactory.sol";
+import {TestCounter} from "src/test/TestCounter.sol";
 import "forge-std/console.sol";
 
 contract DeployOracle is Script {
@@ -12,7 +13,8 @@ contract DeployOracle is Script {
         external
         returns (
             EntryPoint entryPoint,
-            SimpleAccountFactory accountFactory
+            SimpleAccountFactory accountFactory,
+            TestCounter testCounter
         )
     {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
@@ -23,5 +25,10 @@ contract DeployOracle is Script {
 
         console.log("Deploying SimpleAccountFactory");
         accountFactory = new SimpleAccountFactory(entryPoint);
+
+        console.log("Deploying TestCounter");
+        testCounter = new TestCounter();
+
+        vm.stopBroadcast();
     }
 }

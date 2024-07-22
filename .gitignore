@@ -19,3 +19,5 @@ artifacts
 /contracts/dist/
 /contracts/types/
 /out
+.env
+/broadcast/

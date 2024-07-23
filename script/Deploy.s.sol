@@ -8,7 +8,7 @@ import {SimpleAccountFactory} from "src/samples/SimpleAccountFactory.sol";
 import {TestCounter} from "src/test/TestCounter.sol";
 import "forge-std/console.sol";
 
-contract DeployOracle is Script {
+contract Deploy is Script {
     function run()
         external
         returns (

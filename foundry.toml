@@ -12,4 +12,6 @@ solc_version = "0.8.23"
 evm_version = "paris"
 via_ir = true
 
+fs_permissions = [{ access = "read-write", path = "./"}]
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

@@ -13,27 +13,19 @@ import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/inde
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 (async () => {
   console.log('net=', hre.network.name)
-  const aa_url = process.env.AA_URL
+  const rpc_url = "https://rpc-drew-aa-test-jsil2tjx0p.t.conduit-stg.xyz"
+  const aa_url = "http://localhost:3000"
 
-  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-  if (aa_url == null && !process.env.FORCE_DEPLOY) {
-    await hre.run('deploy')
-    const chainId = await hre.getChainId()
-    if (chainId.match(/1337/) == null) {
-      console.log('chainid=', chainId)
-      await hre.run('etherscan-verify')
-    }
-  }
-  const [entryPointAddress, testCounterAddress, accountFactoryAddress] = await Promise.all([
-    hre.deployments.get('EntryPoint').then(d => d.address),
-    hre.deployments.get('TestCounter').then(d => d.address),
-    hre.deployments.get('SimpleAccountFactory').then(d => d.address)
-  ])
+  const [entryPointAddress, testCounterAddress, accountFactoryAddress] = [
+    "0xFb275eaB7f48d113aD6B67A207dFBcFCAD5f0019",
+    "0x57C8fEC64225F12d14109BD268a6108732483523",
+    "0x0937583C53b92DD713Fc59A86816a06A29dF08Ce",
+  ]
 
   console.log('entryPointAddress:', entryPointAddress, 'testCounterAddress:', testCounterAddress)
-  const provider = ethers.provider
-  const ethersSigner = provider.getSigner(0)
-  const prefundAccountAddress = await ethersSigner.getAddress()
+  const provider = new ethers.providers.JsonRpcProvider(rpc_url)
+  const ethersSigner = new ethers.Wallet("0939f589242556f33f1bd42e57683750e7676b999a7f11b48ad59c0896dbe74e", provider) //= provider.getSigner(0)
+  const prefundAccountAddress = ethersSigner.address
   const prefundAccountBalance = await provider.getBalance(prefundAccountAddress)
   console.log('using prefund account address', prefundAccountAddress, 'with balance', prefundAccountBalance.toString())
 
@@ -83,30 +75,30 @@ import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/inde
   const ret = await testCounter.justemit()
   console.log('waiting for mine, hash (reqId)=', ret.hash)
   const rcpt = await ret.wait()
-  const netname = await provider.getNetwork().then(net => net.name)
-  if (netname !== 'unknown') {
-    console.log('rcpt', rcpt.transactionHash, `https://dashboard.tenderly.co/tx/${netname}/${rcpt.transactionHash}/gas-usage`)
-  }
-  const gasPaid = prebalance.sub(await provider.getBalance(myAddress))
-  const depositPaid = preDeposit.sub(await entryPoint.balanceOf(myAddress))
-  console.log('paid (from balance)=', gasPaid.toNumber() / 1e9, 'paid (from deposit)', depositPaid.div(1e9).toString(), 'gasUsed=', rcpt.gasUsed)
-  const logs = await entryPoint.queryFilter('*' as any, rcpt.blockNumber)
-  console.log(logs.map((e: any) => ({ ev: e.event, ...objdump(e.args!) })))
-  console.log('1st run gas used:', await evInfo(rcpt))
+  // const netname = await provider.getNetwork().then(net => net.name)
+  // if (netname !== 'unknown') {
+  //   console.log('rcpt', rcpt.transactionHash, `https://dashboard.tenderly.co/tx/${netname}/${rcpt.transactionHash}/gas-usage`)
+  // }
+  // const gasPaid = prebalance.sub(await provider.getBalance(myAddress))
+  // const depositPaid = preDeposit.sub(await entryPoint.balanceOf(myAddress))
+  // console.log('paid (from balance)=', gasPaid.toNumber() / 1e9, 'paid (from deposit)', depositPaid.div(1e9).toString(), 'gasUsed=', rcpt.gasUsed)
+  // const logs = await entryPoint.queryFilter('*' as any, rcpt.blockNumber)
+  // console.log(logs.map((e: any) => ({ ev: e.event, ...objdump(e.args!) })))
+  // console.log('1st run gas used:', await evInfo(rcpt))
 
-  const ret1 = await testCounter.justemit()
-  const rcpt2 = await ret1.wait()
-  console.log('2nd run:', await evInfo(rcpt2))
+  // const ret1 = await testCounter.justemit()
+  // const rcpt2 = await ret1.wait()
+  // console.log('2nd run:', await evInfo(rcpt2))
 
-  async function evInfo (rcpt: TransactionReceipt): Promise<any> {
-    // TODO: checking only latest block...
-    const block = rcpt.blockNumber
-    const ev = await entryPoint.queryFilter(entryPoint.filters.UserOperationEvent(), block)
-    // if (ev.length === 0) return {}
-    return ev.map(event => {
-      const { nonce, actualGasUsed } = event.args
-      const gasUsed = rcpt.gasUsed.toNumber()
-      return { nonce: nonce.toNumber(), gasPaid, gasUsed: gasUsed, diff: gasUsed - actualGasUsed.toNumber() }
-    })
-  }
+  // async function evInfo (rcpt: TransactionReceipt): Promise<any> {
+  //   // TODO: checking only latest block...
+  //   const block = rcpt.blockNumber
+  //   const ev = await entryPoint.queryFilter(entryPoint.filters.UserOperationEvent(), block)
+  //   // if (ev.length === 0) return {}
+  //   return ev.map(event => {
+  //     const { nonce, actualGasUsed } = event.args
+  //     const gasUsed = rcpt.gasUsed.toNumber()
+  //     return { nonce: nonce.toNumber(), gasPaid, gasUsed: gasUsed, diff: gasUsed - actualGasUsed.toNumber() }
+  //   })
+  // }
 })()

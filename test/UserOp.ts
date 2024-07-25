@@ -81,7 +81,7 @@ export const DefaultsForUserOp: UserOperation = {
   callData: '0x',
   callGasLimit: 0,
   verificationGasLimit: 150000, // default verification gas. will add create2 cost (3200+200*length) if initCode exists
-  preVerificationGas: 21000, // should also cover calldata cost.
+  preVerificationGas: 46000, // should also cover calldata cost.
   maxFeePerGas: 0,
   maxPriorityFeePerGas: 1e9,
   paymaster: AddressZero,
@@ -215,8 +215,9 @@ export async function fillAndPack (op: Partial<UserOperation>, entryPoint?: Entr
 export async function fillAndSign (op: Partial<UserOperation>, signer: Wallet | Signer, entryPoint?: EntryPoint, getNonceFunction = 'getNonce'): Promise<UserOperation> {
   const provider = entryPoint?.provider
   const op2 = await fillUserOp(op, entryPoint, getNonceFunction)
+  console.log("fillAndSign", op2)
 
-  const chainId = await provider!.getNetwork().then(net => net.chainId)
+  const chainId = 37486 //await provider!.getNetwork().then(net => net.chainId)
   const message = arrayify(getUserOpHash(op2, entryPoint!.address, chainId))
 
   let signature

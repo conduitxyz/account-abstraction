@@ -43,12 +43,30 @@ export function rpcUserOpSender (provider: ethers.providers.JsonRpcProvider, ent
 
     const cleanUserOp = Object.keys(userOp).map(key => {
       let val = (userOp as any)[key]
+      if (val === undefined) return [key, ""]
       if (typeof val !== 'string' || !val.startsWith('0x')) {
         val = hexValue(val)
       }
       return [key, val]
     })
       .reduce((set, [k, v]) => ({ ...set, [k]: v }), {})
+    if ('initCode' in cleanUserOp) {
+      delete cleanUserOp['initCode'];
+    }
+    if ('paymaster' in cleanUserOp) {
+      delete cleanUserOp['paymaster'];
+    }
+    if ('paymasterData' in cleanUserOp) {
+      delete cleanUserOp['paymasterData'];
+    }
+    if ('paymasterVerificationGasLimit' in cleanUserOp) {
+      delete cleanUserOp['paymasterVerificationGasLimit'];
+    }
+    if ('paymasterPostOpGasLimit' in cleanUserOp) {
+      delete cleanUserOp['paymasterPostOpGasLimit'];
+    }
+    console.log("cleanUserOp", cleanUserOp)
+
     await provider.send('eth_sendUserOperation', [cleanUserOp, entryPointAddress]).catch(e => {
       throw e.error ?? e
     })
@@ -388,7 +406,6 @@ export class AASigner extends Signer {
     }
     const userOp = await fillAndSign({
       sender: this._account!.address,
-      initCode,
       nonce: initCode == null ? tx.nonce : this.index,
       callData: execFromEntryPoint.data!,
       callGasLimit: tx.gasLimit,

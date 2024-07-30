@@ -50,9 +50,6 @@ export function rpcUserOpSender (provider: ethers.providers.JsonRpcProvider, ent
       return [key, val]
     })
       .reduce((set, [k, v]) => ({ ...set, [k]: v }), {})
-    if ('initCode' in cleanUserOp) {
-      delete cleanUserOp['initCode'];
-    }
     if ('paymaster' in cleanUserOp) {
       delete cleanUserOp['paymaster'];
     }

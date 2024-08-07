@@ -13,18 +13,18 @@ import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/inde
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 (async () => {
   console.log('net=', hre.network.name)
-  const rpc_url = "https://rpc-drew-aa-test-jsil2tjx0p.t.conduit-stg.xyz"
-  const aa_url = "http://localhost:3000"
+  const rpc_url = "https://rpc-drew-aa-deploy-test-rw221xmztz.t.conduit-stg.xyz"
+  const aa_url = "https://bundler-drew-aa-deploy-test-rw221xmztz.t.conduit-stg.xyz"
 
   const [entryPointAddress, testCounterAddress, accountFactoryAddress] = [
-    "0xFb275eaB7f48d113aD6B67A207dFBcFCAD5f0019",
-    "0x57C8fEC64225F12d14109BD268a6108732483523",
-    "0x0937583C53b92DD713Fc59A86816a06A29dF08Ce",
+    "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+    "0x475d5a5B128c1846b86493b357e75E27201447B7",
+    "0x0ACDDd4868E24aad6A16573b416133F58795A916",
   ]
 
   console.log('entryPointAddress:', entryPointAddress, 'testCounterAddress:', testCounterAddress)
   const provider = new ethers.providers.JsonRpcProvider(rpc_url)
-  const ethersSigner = new ethers.Wallet("0939f589242556f33f1bd42e57683750e7676b999a7f11b48ad59c0896dbe74e", provider) //= provider.getSigner(0)
+  const ethersSigner = new ethers.Wallet("40cce62e44c16f778522d4d588a32813654de64b340dede826574dc6d1f972de", provider) //= provider.getSigner(0)
   const prefundAccountAddress = ethersSigner.address
   const prefundAccountBalance = await provider.getBalance(prefundAccountAddress)
   console.log('using prefund account address', prefundAccountAddress, 'with balance', prefundAccountBalance.toString())

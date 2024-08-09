@@ -25,7 +25,7 @@ import EntryPointSimulationsJson from '../artifacts/contracts/core/EntryPointSim
 import { ethers } from 'hardhat'
 import { IEntryPointSimulations } from '../typechain/contracts/core/EntryPointSimulations'
 
-export function packUserOp (userOp: UserOperation): PackedUserOperation {
+export function packUserOp(userOp: UserOperation): PackedUserOperation {
   const accountGasLimits = packAccountGasLimits(userOp.verificationGasLimit, userOp.callGasLimit)
   const gasFees = packAccountGasLimits(userOp.maxPriorityFeePerGas, userOp.maxFeePerGas)
   let paymasterAndData = '0x'
@@ -44,7 +44,7 @@ export function packUserOp (userOp: UserOperation): PackedUserOperation {
     signature: userOp.signature
   }
 }
-export function encodeUserOp (userOp: UserOperation, forSignature = true): string {
+export function encodeUserOp(userOp: UserOperation, forSignature = true): string {
   const packedUserOp = packUserOp(userOp)
   if (forSignature) {
     return defaultAbiCoder.encode(
@@ -52,8 +52,8 @@ export function encodeUserOp (userOp: UserOperation, forSignature = true): strin
         'bytes32', 'uint256', 'bytes32',
         'bytes32'],
       [packedUserOp.sender, packedUserOp.nonce, keccak256(packedUserOp.initCode), keccak256(packedUserOp.callData),
-        packedUserOp.accountGasLimits, packedUserOp.preVerificationGas, packedUserOp.gasFees,
-        keccak256(packedUserOp.paymasterAndData)])
+      packedUserOp.accountGasLimits, packedUserOp.preVerificationGas, packedUserOp.gasFees,
+      keccak256(packedUserOp.paymasterAndData)])
   } else {
     // for the purpose of calculating gas cost encode also signature (and no keccak of bytes)
     return defaultAbiCoder.encode(
@@ -61,12 +61,12 @@ export function encodeUserOp (userOp: UserOperation, forSignature = true): strin
         'bytes32', 'uint256', 'bytes32',
         'bytes', 'bytes'],
       [packedUserOp.sender, packedUserOp.nonce, packedUserOp.initCode, packedUserOp.callData,
-        packedUserOp.accountGasLimits, packedUserOp.preVerificationGas, packedUserOp.gasFees,
-        packedUserOp.paymasterAndData, packedUserOp.signature])
+      packedUserOp.accountGasLimits, packedUserOp.preVerificationGas, packedUserOp.gasFees,
+      packedUserOp.paymasterAndData, packedUserOp.signature])
   }
 }
 
-export function getUserOpHash (op: UserOperation, entryPoint: string, chainId: number): string {
+export function getUserOpHash(op: UserOperation, entryPoint: string, chainId: number): string {
   const userOpHash = keccak256(encodeUserOp(op, true))
   const enc = defaultAbiCoder.encode(
     ['bytes32', 'address', 'uint256'],
@@ -91,7 +91,7 @@ export const DefaultsForUserOp: UserOperation = {
   signature: '0x'
 }
 
-export function signUserOp (op: UserOperation, signer: Wallet, entryPoint: string, chainId: number): UserOperation {
+export function signUserOp(op: UserOperation, signer: Wallet, entryPoint: string, chainId: number): UserOperation {
   const message = getUserOpHash(op, entryPoint, chainId)
   const msg1 = Buffer.concat([
     Buffer.from('\x19Ethereum Signed Message:\n32', 'ascii'),
@@ -108,7 +108,7 @@ export function signUserOp (op: UserOperation, signer: Wallet, entryPoint: strin
   }
 }
 
-export function fillUserOpDefaults (op: Partial<UserOperation>, defaults = DefaultsForUserOp): UserOperation {
+export function fillUserOpDefaults(op: Partial<UserOperation>, defaults = DefaultsForUserOp): UserOperation {
   const partial: any = { ...op }
   // we want "item:undefined" to be used from defaults, and not override defaults, so we must explicitly
   // remove those so "merge" will succeed.
@@ -134,7 +134,7 @@ export function fillUserOpDefaults (op: Partial<UserOperation>, defaults = Defau
 // sender - only in case of construction: fill sender from initCode.
 // callGasLimit: VERY crude estimation (by estimating call to account, and add rough entryPoint overhead
 // verificationGasLimit: hard-code default at 100k. should add "create2" cost
-export async function fillUserOp (op: Partial<UserOperation>, entryPoint?: EntryPoint, getNonceFunction = 'getNonce'): Promise<UserOperation> {
+export async function fillUserOp(op: Partial<UserOperation>, entryPoint?: EntryPoint, getNonceFunction = 'getNonce'): Promise<UserOperation> {
   const op1 = { ...op }
   const provider = entryPoint?.provider
   if (op.initCode != null) {
@@ -208,16 +208,16 @@ export async function fillUserOp (op: Partial<UserOperation>, entryPoint?: Entry
   return op2
 }
 
-export async function fillAndPack (op: Partial<UserOperation>, entryPoint?: EntryPoint, getNonceFunction = 'getNonce'): Promise<PackedUserOperation> {
+export async function fillAndPack(op: Partial<UserOperation>, entryPoint?: EntryPoint, getNonceFunction = 'getNonce'): Promise<PackedUserOperation> {
   return packUserOp(await fillUserOp(op, entryPoint, getNonceFunction))
 }
 
-export async function fillAndSign (op: Partial<UserOperation>, signer: Wallet | Signer, entryPoint?: EntryPoint, getNonceFunction = 'getNonce'): Promise<UserOperation> {
+export async function fillAndSign(op: Partial<UserOperation>, signer: Wallet | Signer, entryPoint?: EntryPoint, getNonceFunction = 'getNonce'): Promise<UserOperation> {
   const provider = entryPoint?.provider
   const op2 = await fillUserOp(op, entryPoint, getNonceFunction)
   console.log("fillAndSign", op2)
 
-  const chainId = 37486 //await provider!.getNetwork().then(net => net.chainId)
+  const chainId = 77675 //await provider!.getNetwork().then(net => net.chainId)
   const message = arrayify(getUserOpHash(op2, entryPoint!.address, chainId))
 
   let signature
@@ -233,7 +233,7 @@ export async function fillAndSign (op: Partial<UserOperation>, signer: Wallet | 
   }
 }
 
-export async function fillSignAndPack (op: Partial<UserOperation>, signer: Wallet | Signer, entryPoint?: EntryPoint, getNonceFunction = 'getNonce'): Promise<PackedUserOperation> {
+export async function fillSignAndPack(op: Partial<UserOperation>, signer: Wallet | Signer, entryPoint?: EntryPoint, getNonceFunction = 'getNonce'): Promise<PackedUserOperation> {
   const filledAndSignedOp = await fillAndSign(op, signer, entryPoint, getNonceFunction)
   return packUserOp(filledAndSignedOp)
 }
@@ -245,7 +245,7 @@ export async function fillSignAndPack (op: Partial<UserOperation>, signer: Walle
  * @param entryPointAddress
  * @param txOverrides
  */
-export async function simulateValidation (
+export async function simulateValidation(
   userOp: PackedUserOperation,
   entryPointAddress: string,
   txOverrides?: any): Promise<IEntryPointSimulations.ValidationResultStructOutput> {
@@ -278,7 +278,7 @@ export async function simulateValidation (
 
 // TODO: this code is very much duplicated but "encodeFunctionData" is based on 20 overloads
 //  TypeScript is not able to resolve overloads with variables: https://github.com/microsoft/TypeScript/issues/14107
-export async function simulateHandleOp (
+export async function simulateHandleOp(
   userOp: PackedUserOperation,
   target: string,
   targetCallData: string,

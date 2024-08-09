@@ -148,9 +148,10 @@ export function packAccountGasLimits (verificationGasLimit: BigNumberish, callGa
   ])
 }
 
-export function packFactoryData (factory: string, factoryData: BigNumberish): string {
+export function packFactoryData (factory: string, factoryData: BytesLike): string {
   return ethers.utils.hexConcat([
-    factory, hexZeroPad(hexlify(factoryData, { hexPad: 'left' }), 16)
+    // TODO kinda hacky to avoid zero-padding '0x' to '0x00000000000000000000000000000000'
+    factory, factoryData == '0x'? '0x' : hexZeroPad(hexlify(factoryData, { hexPad: 'left' }), 16)
   ])
 }
 

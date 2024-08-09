@@ -220,13 +220,8 @@ export async function fillAndPack(op: Partial<UserOperation>, entryPoint?: Entry
 
 export async function fillAndSign(op: Partial<UserOperation>, signer: Wallet | Signer, entryPoint?: EntryPoint, getNonceFunction = 'getNonce'): Promise<UserOperation> {
   const op2 = await fillUserOp(op, entryPoint, getNonceFunction)
-  console.log("fillAndSign", op2)
-  // TODO bad!
-  delete op2.factory
-  delete op2.factoryData
 
-  // TODO bad!
-  const chainId = 77675 //await provider!.getNetwork().then(net => net.chainId)
+  const chainId = await signer.provider!.getNetwork().then(net => net.chainId)
   const message = arrayify(getUserOpHash(op2, entryPoint!.address, chainId))
 
   let signature

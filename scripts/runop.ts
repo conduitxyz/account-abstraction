@@ -56,7 +56,6 @@ import {
   console.log(`Using account ${aaAccountAddress}`)
 
   const entryPoint = EntryPoint__factory.connect(ENTRYPOINT_0_7_0_ADDRESS, signer)
-  console.log('account address=', aaAccountAddress)
   const aaAccountGasBalance = await entryPoint.balanceOf(aaAccountAddress)
   if (aaAccountGasBalance.eq(parseEther('0'))) {
     console.error(`ERROR: ${aaAccountAddress} has no ether for gas. Run "yarn run fundAccount" first`)

@@ -167,7 +167,7 @@ export async function fillUserOp(op: Partial<UserOperation>, entryPoint?: EntryP
         data: op.factoryData,
         gasLimit: 10e6
       })
-      op1.verificationGasLimit = BigNumber.from(DefaultsForUserOp.verificationGasLimit).add(initEstimate)
+      op1.verificationGasLimit = initEstimate
     }
   }
   if (op1.nonce == null) {
@@ -187,7 +187,7 @@ export async function fillUserOp(op: Partial<UserOperation>, entryPoint?: EntryP
     // estimateGas assumes direct call from entryPoint. add wrapper cost.
     op1.callGasLimit = gasEtimated // .add(55000)
   }
-  if (op1.paymaster != null) {
+  if (op1.paymaster != null && op1.paymaster != AddressZero && op1.paymaster != '0x') {
     if (op1.paymasterVerificationGasLimit == null) {
       op1.paymasterVerificationGasLimit = DefaultsForUserOp.paymasterVerificationGasLimit
     }
@@ -206,11 +206,7 @@ export async function fillUserOp(op: Partial<UserOperation>, entryPoint?: EntryP
     op1.maxPriorityFeePerGas = DefaultsForUserOp.maxPriorityFeePerGas
   }
   const op2 = fillUserOpDefaults(op1)
-  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-  if (op2.preVerificationGas.toString() === '0') {
-    // TODO: we don't add overhead, which is ~21000 for a single TX, but much lower in a batch.
-    op2.preVerificationGas = callDataCost(encodeUserOp(op2, false))
-  }
+  op2.preVerificationGas = BigNumber.from(DefaultsForUserOp.preVerificationGas).add(callDataCost(encodeUserOp(op2, false)))
   return op2
 }
 

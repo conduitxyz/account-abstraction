@@ -44,8 +44,6 @@ import {
     aaIndex
   )
 
-  // TODO create the smart account if it does not exist
-  // connect to pre-deployed account
   const aaAccountAddress = await aaSigner.getAddress()
   const code = await provider.getCode(aaAccountAddress);
   if (code.length <= 2) {

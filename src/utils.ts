@@ -1,79 +1,22 @@
 import { ethers } from 'hardhat'
 import {
-  arrayify,
-  hexConcat, hexDataSlice,
+  hexConcat,
   hexlify,
   hexZeroPad,
   Interface,
   keccak256,
-  parseEther
 } from 'ethers/lib/utils'
-import { BigNumber, BigNumberish, Contract, ContractReceipt, Signer, Wallet } from 'ethers'
+import { BigNumberish } from 'ethers'
 import {
-  EntryPoint,
   EntryPoint__factory,
-  IERC20,
-  SimpleAccount,
-  SimpleAccountFactory__factory,
-  SimpleAccount__factory,
   SimpleAccountFactory,
-  TestAggregatedAccountFactory, TestPaymasterRevertCustomError__factory, TestERC20__factory
+  TestPaymasterRevertCustomError__factory, TestERC20__factory
 } from '../typechain'
 import { BytesLike, Hexable } from '@ethersproject/bytes'
-import { expect } from 'chai'
-import { UserOperation } from './types/UserOperation'
-import { packUserOp, simulateValidation } from './UserOp'
 
 export const AddressZero = ethers.constants.AddressZero
 export const HashZero = ethers.constants.HashZero
-export const ONE_ETH = parseEther('1')
-export const TWO_ETH = parseEther('2')
-export const FIVE_ETH = parseEther('5')
 
-export const tostr = (x: any): string => x != null ? x.toString() : 'null'
-
-export function tonumber (x: any): number {
-  try {
-    return parseFloat(x.toString())
-  } catch (e: any) {
-    console.log('=== failed to parseFloat:', x, (e).message)
-    return NaN
-  }
-}
-
-// just throw 1eth from account[0] to the given address (or contract instance)
-export async function fund (contractOrAddress: string | Contract, amountEth = '1'): Promise<void> {
-  let address: string
-  if (typeof contractOrAddress === 'string') {
-    address = contractOrAddress
-  } else {
-    address = contractOrAddress.address
-  }
-  await ethers.provider.getSigner().sendTransaction({ to: address, value: parseEther(amountEth) })
-}
-
-export async function getBalance (address: string): Promise<number> {
-  const balance = await ethers.provider.getBalance(address)
-  return parseInt(balance.toString())
-}
-
-export async function getTokenBalance (token: IERC20, address: string): Promise<number> {
-  const balance = await token.balanceOf(address)
-  return parseInt(balance.toString())
-}
-
-let counter = 0
-
-// create non-random account, so gas calculations are deterministic
-export function createAccountOwner (): Wallet {
-  const privateKey = keccak256(Buffer.from(arrayify(BigNumber.from(++counter))))
-  return new ethers.Wallet(privateKey, ethers.provider)
-  // return new ethers.Wallet('0x'.padEnd(66, privkeyBase), ethers.provider);
-}
-
-export function createAddress (): string {
-  return createAccountOwner().address
-}
 
 export function callDataCost (data: string): number {
   return ethers.utils.arrayify(data)
@@ -81,31 +24,8 @@ export function callDataCost (data: string): number {
     .reduce((sum, x) => sum + x)
 }
 
-export async function calcGasUsage (rcpt: ContractReceipt, entryPoint: EntryPoint, beneficiaryAddress?: string): Promise<{ actualGasCost: BigNumberish }> {
-  const actualGas = await rcpt.gasUsed
-  const logs = await entryPoint.queryFilter(entryPoint.filters.UserOperationEvent(), rcpt.blockHash)
-  const { actualGasCost, actualGasUsed } = logs[0].args
-  console.log('\t== actual gasUsed (from tx receipt)=', actualGas.toString())
-  console.log('\t== calculated gasUsed (paid to beneficiary)=', actualGasUsed)
-  const tx = await ethers.provider.getTransaction(rcpt.transactionHash)
-  console.log('\t== gasDiff', actualGas.toNumber() - actualGasUsed.toNumber() - callDataCost(tx.data))
-  if (beneficiaryAddress != null) {
-    expect(await getBalance(beneficiaryAddress)).to.eq(actualGasCost.toNumber())
-  }
-  return { actualGasCost }
-}
-
 // helper function to create the initCode to deploy the account, using our account factory.
 export function getAccountInitCode (owner: string, factory: SimpleAccountFactory, salt = 0): BytesLike {
-  return hexConcat([
-    factory.address,
-    factory.interface.encodeFunctionData('createAccount', [owner, salt])
-  ])
-}
-
-export async function getAggregatedAccountInitCode (entryPoint: string, factory: TestAggregatedAccountFactory, salt = 0): Promise<BytesLike> {
-  // the test aggregated account doesn't check the owner...
-  const owner = AddressZero
   return hexConcat([
     factory.address,
     factory.interface.encodeFunctionData('createAccount', [owner, salt])
@@ -205,29 +125,6 @@ export function decodeRevertReason (data: string | Error, nullIfNoMatch = true):
   }
 }
 
-let currentNode: string = ''
-
-// basic geth support
-// - by default, has a single account. our code needs more.
-export async function checkForGeth (): Promise<void> {
-  // @ts-ignore
-  const provider = ethers.provider._hardhatProvider
-
-  currentNode = await provider.request({ method: 'web3_clientVersion' })
-
-  console.log('node version:', currentNode)
-  // NOTE: must run geth with params:
-  // --http.api personal,eth,net,web3
-  // --allow-insecure-unlock
-  if (currentNode.match(/geth/i) != null) {
-    for (let i = 0; i < 2; i++) {
-      const acc = await provider.request({ method: 'personal_newAccount', params: ['pass'] }).catch(rethrow)
-      await provider.request({ method: 'personal_unlockAccount', params: [acc, 'pass'] }).catch(rethrow)
-      await fund(acc, '10')
-    }
-  }
-}
-
 // remove "array" members, convert values to strings.
 // so Result obj like
 // { '0': "a", '1': 20, first: "a", second: 20 }
@@ -242,35 +139,6 @@ export function objdump (obj: { [key: string]: any }): any {
         ...set,
         [key]: decodeRevertReason(obj[key].toString(), false)
       }), {})
-}
-
-export async function isDeployed (addr: string): Promise<boolean> {
-  const code = await ethers.provider.getCode(addr)
-  return code.length > 2
-}
-
-// Deploys an implementation and a proxy pointing to this implementation
-export async function createAccount (
-  ethersSigner: Signer,
-  accountOwner: string,
-  entryPoint: string,
-  _factory?: SimpleAccountFactory
-):
-  Promise<{
-    proxy: SimpleAccount
-    accountFactory: SimpleAccountFactory
-    implementation: string
-  }> {
-  const accountFactory = _factory ?? await new SimpleAccountFactory__factory(ethersSigner).deploy(entryPoint)
-  const implementation = await accountFactory.accountImplementation()
-  await accountFactory.createAccount(accountOwner, 0)
-  const accountAddress = await accountFactory.getAddress(accountOwner, 0)
-  const proxy = SimpleAccount__factory.connect(accountAddress, ethersSigner)
-  return {
-    implementation,
-    accountFactory,
-    proxy
-  }
 }
 
 export function packAccountGasLimits (verificationGasLimit: BigNumberish, callGasLimit: BigNumberish): string {
@@ -292,123 +160,11 @@ export function packPaymasterData (paymaster: string, paymasterVerificationGasLi
   ])
 }
 
-export function unpackAccountGasLimits (accountGasLimits: string): { verificationGasLimit: number, callGasLimit: number } {
-  return { verificationGasLimit: parseInt(accountGasLimits.slice(2, 34), 16), callGasLimit: parseInt(accountGasLimits.slice(34), 16) }
-}
-
 export interface ValidationData {
   aggregator: string
   validAfter: number
   validUntil: number
 }
-
-export const maxUint48 = (2 ** 48) - 1
-export function parseValidationData (validationData: BigNumberish): ValidationData {
-  const data = hexZeroPad(BigNumber.from(validationData).toHexString(), 32)
-
-  // string offsets start from left (msb)
-  const aggregator = hexDataSlice(data, 32 - 20)
-  let validUntil = parseInt(hexDataSlice(data, 32 - 26, 32 - 20))
-  if (validUntil === 0) {
-    validUntil = maxUint48
-  }
-  const validAfter = parseInt(hexDataSlice(data, 0, 6))
-
-  return {
-    aggregator,
-    validAfter,
-    validUntil
-  }
-}
-
-export function packValidationData (validationData: ValidationData): BigNumber {
-  return BigNumber.from(validationData.validAfter).shl(48)
-    .add(validationData.validUntil).shl(160)
-    .add(validationData.aggregator)
-}
-
-// find the lowest number in the range min..max where testFunc returns true
-export async function findMin (testFunc: (index: number) => Promise<boolean>, min: number, max: number, delta = 5): Promise<number> {
-  if (await testFunc(min)) {
-    throw new Error(`increase range: function already true at ${min}`)
-  }
-  if (!await testFunc(max)) {
-    throw new Error(`no result: function is false for max value in ${min}..${max}`)
-  }
-  while (true) {
-    const avg = Math.floor((max + min) / 2)
-    if (await testFunc(avg)) {
-      max = avg
-    } else {
-      min = avg
-    }
-    // console.log('== ', min, '...', max, max - min)
-    if (Math.abs(max - min) < delta) {
-      return max
-    }
-  }
-}
-
-/**
- * find the lowest value that when creating a userop, still doesn't revert and
- * doesn't emit UserOperationPrefundTooLow
- * note: using eth_snapshot/eth_revert, since we actually submit calls to handleOps
- * @param f function that return a signed userop, with parameter-under-test set to "n"
- * @param min range minimum. the function is expected to return false
- * @param max range maximum. the function is expected to be true
- * @param entryPoint entrypoint for "fillAndSign" of userops
- */
-export async function findUserOpWithMin (f: (n: number) => Promise<UserOperation>, expectExec: boolean, entryPoint: EntryPoint, min: number, max: number, delta = 2): Promise<number> {
-  const beneficiary = ethers.provider.getSigner().getAddress()
-  return await findMin(
-    async n => {
-      const snapshot = await ethers.provider.send('evm_snapshot', [])
-      try {
-        const userOp = await f(n)
-        // console.log('== userop=', userOp)
-        const rcpt = await entryPoint.handleOps([packUserOp(userOp)], beneficiary, { gasLimit: 1e6 })
-          .then(async r => r.wait())
-        if (rcpt?.events?.find(e => e.event === 'UserOperationPrefundTooLow') != null) {
-          // console.log('min', n, 'UserOperationPrefundTooLow')
-          return false
-        }
-        if (expectExec) {
-          const useropEvent = rcpt?.events?.find(e => e.event === 'UserOperationEvent')
-          if (useropEvent?.args?.success !== true) {
-            // console.log(rcpt?.events?.map((e: any) => ({ ev: e.event, ...objdump(e.args!) })))
-
-            // console.log('min', n, 'success=false')
-            return false
-          }
-        }
-        // console.log('min', n, 'ok')
-        return true
-      } catch (e) {
-        // console.log('min', n, 'ex=', decodeRevertReason(e as Error))
-        return false
-      } finally {
-        await ethers.provider.send('evm_revert', [snapshot])
-      }
-    }, min, max, delta
-  )
-}
-
-export async function findSimulationUserOpWithMin (f: (n: number) => Promise<UserOperation>, entryPoint: EntryPoint, min: number, max: number, delta = 2): Promise<number> {
-  return await findMin(
-    async n => {
-      try {
-        const userOp = await f(n)
-        await simulateValidation(packUserOp(userOp), entryPoint.address)
-        // console.log('sim', n, 'ok')
-        return true
-      } catch (e) {
-        // console.log('sim', n, 'ex=', decodeRevertReason(e as Error))
-        return false
-      }
-    }, min, max, delta
-  )
-}
-
 
 // create 2 utilities
 export const CREATE2_FACTORY_ADDRESS = '0x4e59b44847b379578588920ca78fbf26c0b4956c'

@@ -12,7 +12,6 @@ import {
   TEST_COUNTER_ADDRESS
 } from '../src/constants'
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
 (async () => {
   const rpcUrl = process.env.RPC_URL;
   const aaUrl = process.env.AA_URL;
@@ -74,10 +73,7 @@ import {
   const ret = await testCounter.justemit()
   console.log('waiting for mine, hash (reqId)=', ret.hash)
   const rcpt = await ret.wait()
-  // const netname = await provider.getNetwork().then(net => net.name)
-  // if (netname !== 'unknown') {
-  //   console.log('rcpt', rcpt.transactionHash, `https://dashboard.tenderly.co/tx/${netname}/${rcpt.transactionHash}/gas-usage`)
-  // }
+
   // const gasPaid = prebalance.sub(await provider.getBalance(aaAccountAddress))
   // const depositPaid = preDeposit.sub(await entryPoint.balanceOf(aaAccountAddress))
   // console.log('paid (from balance)=', gasPaid.toNumber() / 1e9, 'paid (from deposit)', depositPaid.div(1e9).toString(), 'gasUsed=', rcpt.gasUsed)

@@ -1,7 +1,7 @@
 // run a single op
 // "yarn run runop [--network ...]"
 
-import hre, { ethers } from 'hardhat'
+import { ethers } from 'ethers'
 import { AASigner, rpcUserOpSender } from '../src/AASigner'
 import { TestCounter__factory, EntryPoint__factory } from '../typechain'
 import { parseEther } from 'ethers/lib/utils'
@@ -14,7 +14,6 @@ import {
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 (async () => {
-  console.log('net=', hre.network.name)
   const rpcUrl = process.env.RPC_URL;
   const aaUrl = process.env.AA_URL;
   const aaIndex = parseInt(process.env.AA_INDEX ?? '0'); // an account can have multiple addresses (with different index)

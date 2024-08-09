@@ -14,8 +14,8 @@ import {
   packFactoryData,
   rethrow,
   create2FactoryGetDeployedAddress,
-  CREATE2_FACTORY_ADDRESS
 } from './utils'
+import { CREATE2_FACTORY_ADDRESS } from './constants'
 import { ecsign, toRpcSig, keccak256 as keccak256_buffer } from 'ethereumjs-util'
 import {
   EntryPoint, EntryPointSimulations__factory
@@ -24,7 +24,7 @@ import { PackedUserOperation, UserOperation } from './types'
 import { TransactionRequest } from '@ethersproject/abstract-provider'
 
 import EntryPointSimulationsJson from '../artifacts/contracts/core/EntryPointSimulations.sol/EntryPointSimulations.json'
-import { ethers } from 'hardhat'
+import { ethers } from 'ethers'
 import { IEntryPointSimulations } from '../typechain/contracts/core/EntryPointSimulations'
 
 export function packUserOp(userOp: UserOperation): PackedUserOperation {

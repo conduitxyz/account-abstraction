@@ -2,7 +2,7 @@
 // "yarn run runop [--network ...]"
 
 import hre, { ethers } from 'hardhat'
-import { AASigner, localUserOpSender, rpcUserOpSender } from './AASigner'
+import { AASigner, localUserOpSender, rpcUserOpSender } from '../src/AASigner'
 import { TestCounter__factory, EntryPoint__factory } from '../typechain'
 import { parseEther } from 'ethers/lib/utils'
 import { providers } from 'ethers'

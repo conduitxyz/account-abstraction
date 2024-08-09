@@ -19,7 +19,7 @@
     "ci": "yarn compile && hardhat test && yarn run runop",
     "ci-gas-calc": "yarn gas-calc && yarn check-gas-reports",
     "check-gas-reports": "./scripts/check-gas-reports",
-    "runop": "hardhat run src/runop.ts "
+    "runop": "hardhat run scripts/runop.ts "
   },
   "keywords": [],
   "author": "",

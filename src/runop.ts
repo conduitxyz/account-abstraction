@@ -50,7 +50,6 @@ import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/inde
   const aaSigner = new AASigner(ethersSigner, entryPointAddress, sendUserOp, accountFactoryAddress, aaIndex)
   // TODO create the smart account if it does not exist
   // connect to pre-deployed account
-  // await aasigner.connectAccountAddress(accountAddress)
   const aaAccountAddress = await aaSigner.getAddress()
   if (await provider.getBalance(aaAccountAddress) < parseEther('0.01')) {
     console.log('prefund account')

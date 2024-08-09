@@ -11,6 +11,7 @@ import {
   decodeRevertReason,
   packAccountGasLimits,
   packPaymasterData,
+  packFactoryData,
   rethrow
 } from './testutils'
 import { ecsign, toRpcSig, keccak256 as keccak256_buffer } from 'ethereumjs-util'
@@ -28,16 +29,21 @@ import { IEntryPointSimulations } from '../typechain/contracts/core/EntryPointSi
 export function packUserOp(userOp: UserOperation): PackedUserOperation {
   const accountGasLimits = packAccountGasLimits(userOp.verificationGasLimit, userOp.callGasLimit)
   const gasFees = packAccountGasLimits(userOp.maxPriorityFeePerGas, userOp.maxFeePerGas)
+  let initCode = '0x'
+  if (userOp.factory && userOp.factoryData) {
+    initCode = packFactoryData(userOp.factory as string, userOp.factoryData!)
+  }
+  
   let paymasterAndData = '0x'
-  if (userOp.paymaster?.length >= 20 && userOp.paymaster !== AddressZero) {
-    paymasterAndData = packPaymasterData(userOp.paymaster as string, userOp.paymasterVerificationGasLimit, userOp.paymasterPostOpGasLimit, userOp.paymasterData as string)
+  if (userOp.paymaster && userOp.paymaster !== AddressZero) {
+    paymasterAndData = packPaymasterData(userOp.paymaster as string, userOp.paymasterVerificationGasLimit!, userOp.paymasterPostOpGasLimit!, userOp.paymasterData as string)
   }
   return {
     sender: userOp.sender,
     nonce: userOp.nonce,
     callData: userOp.callData,
     accountGasLimits,
-    initCode: userOp.initCode,
+    initCode,
     preVerificationGas: userOp.preVerificationGas,
     gasFees,
     paymasterAndData,
@@ -77,7 +83,8 @@ export function getUserOpHash(op: UserOperation, entryPoint: string, chainId: nu
 export const DefaultsForUserOp: UserOperation = {
   sender: AddressZero,
   nonce: 0,
-  initCode: '0x',
+  factory: '0x',
+  factoryData: '0x',
   callData: '0x',
   callGasLimit: 0,
   verificationGasLimit: 150000, // default verification gas. will add create2 cost (3200+200*length) if initCode exists
@@ -137,28 +144,26 @@ export function fillUserOpDefaults(op: Partial<UserOperation>, defaults = Defaul
 export async function fillUserOp(op: Partial<UserOperation>, entryPoint?: EntryPoint, getNonceFunction = 'getNonce'): Promise<UserOperation> {
   const op1 = { ...op }
   const provider = entryPoint?.provider
-  if (op.initCode != null) {
-    const initAddr = hexDataSlice(op1.initCode!, 0, 20)
-    const initCallData = hexDataSlice(op1.initCode!, 20)
+  if (op.factory != null && op.factoryData != null) {
     if (op1.nonce == null) op1.nonce = 0
     if (op1.sender == null) {
       // hack: if the init contract is our known deployer, then we know what the address would be, without a view call
-      if (initAddr.toLowerCase() === Create2Factory.contractAddress.toLowerCase()) {
-        const ctr = hexDataSlice(initCallData, 32)
-        const salt = hexDataSlice(initCallData, 0, 32)
+      if (op.factory.toLowerCase() === Create2Factory.contractAddress.toLowerCase()) {
+        const ctr = hexDataSlice(op.factoryData!, 32)
+        const salt = hexDataSlice(op.factoryData!, 0, 32)
         op1.sender = Create2Factory.getDeployedAddress(ctr, salt)
       } else {
         // console.log('\t== not our deployer. our=', Create2Factory.contractAddress, 'got', initAddr)
         if (provider == null) throw new Error('no entrypoint/provider')
-        op1.sender = await entryPoint!.callStatic.getSenderAddress(op1.initCode!).catch(e => e.errorArgs.sender)
+        op1.sender = await entryPoint!.callStatic.getSenderAddress(packFactoryData(op1.factory!, op1.factoryData!)).catch(e => e.errorArgs.sender)
       }
     }
     if (op1.verificationGasLimit == null) {
       if (provider == null) throw new Error('no entrypoint/provider')
       const initEstimate = await provider.estimateGas({
         from: entryPoint?.address,
-        to: initAddr,
-        data: initCallData,
+        to: op.factory,
+        data: op.factoryData,
         gasLimit: 10e6
       })
       op1.verificationGasLimit = BigNumber.from(DefaultsForUserOp.verificationGasLimit).add(initEstimate)
@@ -213,9 +218,11 @@ export async function fillAndPack(op: Partial<UserOperation>, entryPoint?: Entry
 }
 
 export async function fillAndSign(op: Partial<UserOperation>, signer: Wallet | Signer, entryPoint?: EntryPoint, getNonceFunction = 'getNonce'): Promise<UserOperation> {
-  const provider = entryPoint?.provider
   const op2 = await fillUserOp(op, entryPoint, getNonceFunction)
   console.log("fillAndSign", op2)
+  // TODO bad!
+  delete op2.factory
+  delete op2.factoryData
 
   const chainId = 77675 //await provider!.getNetwork().then(net => net.chainId)
   const message = arrayify(getUserOpHash(op2, entryPoint!.address, chainId))

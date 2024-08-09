@@ -26,14 +26,14 @@ export const debug = process.env.DEBUG != null
  *
  * @param provider - rpc provider that supports "eth_sendUserOperation"
  */
-export function rpcUserOpSender (provider: ethers.providers.JsonRpcProvider, entryPointAddress: string): SendUserOp {
+export function rpcUserOpSender(provider: ethers.providers.JsonRpcProvider, entryPointAddress: string): SendUserOp {
   let chainId: number
 
   return async function (userOp) {
     if (debug) {
       console.log('sending eth_sendUserOperation', {
         ...userOp,
-        initCode: (userOp.initCode ?? '').length,
+        factoryData: (userOp.factoryData ?? '').length,
         callData: (userOp.callData ?? '').length
       }, entryPointAddress)
     }
@@ -41,6 +41,7 @@ export function rpcUserOpSender (provider: ethers.providers.JsonRpcProvider, ent
       chainId = await provider.getNetwork().then(net => net.chainId)
     }
 
+    // TODO this whole thing is a mess. clean it up.
     const cleanUserOp = Object.keys(userOp).map(key => {
       let val = (userOp as any)[key]
       if (val === undefined) return [key, ""]
@@ -61,6 +62,12 @@ export function rpcUserOpSender (provider: ethers.providers.JsonRpcProvider, ent
     }
     if ('paymasterPostOpGasLimit' in cleanUserOp) {
       delete cleanUserOp['paymasterPostOpGasLimit'];
+    }
+    if ('factory' in cleanUserOp && cleanUserOp['factory'] === '0x') {
+      delete cleanUserOp['factory'];
+    }
+    if ('factoryData' in cleanUserOp && cleanUserOp['factoryData'] === '0x') {
+      delete cleanUserOp['factoryData'];
     }
     console.log("cleanUserOp", cleanUserOp)
 
@@ -86,7 +93,7 @@ interface QueueSendUserOp extends SendUserOp {
  * a SendUserOp that queue requests. need to call sendQueuedUserOps to create a bundle and send them.
  * the returned object handles the queue of userops and also interval control.
  */
-export function queueUserOpSender (entryPointAddress: string, signer: Signer, intervalMs = 3000): QueueSendUserOp {
+export function queueUserOpSender(entryPointAddress: string, signer: Signer, intervalMs = 3000): QueueSendUserOp {
   const entryPoint = EntryPoint__factory.connect(entryPointAddress, signer)
 
   const ret = async function (userOp: UserOperation) {
@@ -136,7 +143,7 @@ const IDLE_TIME = 5000
 // when reaching this theshold, don't wait anymore and send a bundle
 const BUNDLE_SIZE_IMMEDIATE = 3
 
-async function sendQueuedUserOps (queueSender: QueueSendUserOp, entryPoint: EntryPoint): Promise<void> {
+async function sendQueuedUserOps(queueSender: QueueSendUserOp, entryPoint: EntryPoint): Promise<void> {
   if (sending) {
     console.log('sending in progress. waiting')
     return
@@ -178,15 +185,10 @@ async function sendQueuedUserOps (queueSender: QueueSendUserOp, entryPoint: Entr
  * @param signer ethers provider to send the request (must have eth balance to send)
  * @param beneficiary the account to receive the payment (from account/paymaster). defaults to the signer's address
  */
-export function localUserOpSender (entryPointAddress: string, signer: Signer, beneficiary?: string): SendUserOp {
+export function localUserOpSender(entryPointAddress: string, signer: Signer, beneficiary?: string): SendUserOp {
   const entryPoint = EntryPoint__factory.connect(entryPointAddress, signer)
   return async function (userOp) {
-    if (debug) {
-      console.log('sending', {
-        ...userOp,
-        initCode: userOp.initCode.length <= 2 ? userOp.initCode : `<len=${userOp.initCode.length}>`
-      })
-    }
+    if (debug) console.log(`sending ${userOp}`)
     const gasLimit = BigNumber.from(userOp.preVerificationGas).add(userOp.verificationGasLimit).add(userOp.callGasLimit)
     console.log('calc gaslimit=', gasLimit.toString())
     try {
@@ -208,7 +210,7 @@ export function localUserOpSender (entryPointAddress: string, signer: Signer, be
 export class AAProvider extends BaseProvider {
   private readonly entryPoint: EntryPoint
 
-  constructor (entryPointAddress: string, provider: Provider) {
+  constructor(entryPointAddress: string, provider: Provider) {
     super(provider.getNetwork())
     this.entryPoint = EntryPoint__factory.connect(entryPointAddress, provider)
   }
@@ -233,49 +235,36 @@ export class AASigner extends Signer {
    * @param sendUserOp function to actually send the UserOp to the entryPoint.
    * @param index - index of this account for this signer.
    */
-  constructor (readonly signer: Signer, readonly entryPointAddress: string, readonly sendUserOp: SendUserOp, readonly accountFactoryAddress: string, readonly index = 0, readonly provider = signer.provider) {
+  constructor(readonly signer: Signer, readonly entryPointAddress: string, readonly sendUserOp: SendUserOp, readonly accountFactoryAddress: string, readonly index = 0, readonly provider = signer.provider) {
     super()
     this.entryPoint = EntryPoint__factory.connect(entryPointAddress, signer)
     this.accountFactory = SimpleAccountFactory__factory.connect(accountFactoryAddress, signer)
   }
 
-  // connect to a specific pre-deployed address
-  // (note: in order to send transactions, the underlying signer address must be valid signer for this account (its owner)
-  async connectAccountAddress (address: string): Promise<void> {
-    if (this._account != null) {
-      throw Error('already connected to account')
-    }
-    if (await this.provider!.getCode(address).then(code => code.length) <= 2) {
-      throw new Error('cannot connect to non-existing contract')
-    }
-    this._account = SimpleAccount__factory.connect(address, this.signer)
-    this._isPhantom = false
-  }
-
-  connect (provider: Provider): Signer {
+  connect(provider: Provider): Signer {
     throw new Error('connect not implemented')
   }
 
-  async getAddress (): Promise<string> {
+  async getAddress(): Promise<string> {
     await this.syncAccount()
     return this._account!.address
   }
 
-  async signMessage (message: Bytes | string): Promise<string> {
+  async signMessage(message: Bytes | string): Promise<string> {
     throw new Error('signMessage: unsupported by AA')
   }
 
-  async signTransaction (transaction: Deferrable<TransactionRequest>): Promise<string> {
+  async signTransaction(transaction: Deferrable<TransactionRequest>): Promise<string> {
     throw new Error('signMessage: unsupported by AA')
   }
 
-  async getAccount (): Promise<SimpleAccount> {
+  async getAccount(): Promise<SimpleAccount> {
     await this.syncAccount()
     return this._account!
   }
 
   // fabricate a response in a format usable by ethers users...
-  async userEventResponse (userOp: UserOperation): Promise<TransactionResponse> {
+  async userEventResponse(userOp: UserOperation): Promise<TransactionResponse> {
     const entryPoint = this.entryPoint
     const userOpHash = getUserOpHash(userOp, entryPoint.address, await this._chainId!)
     const provider = entryPoint.provider
@@ -353,7 +342,7 @@ export class AASigner extends Signer {
     return resp
   }
 
-  async sendTransaction (transaction: Deferrable<TransactionRequest>): Promise<TransactionResponse> {
+  async sendTransaction(transaction: Deferrable<TransactionRequest>): Promise<TransactionResponse> {
     const userOp = await this._createUserOperation(transaction)
     // get response BEFORE sending request: the response waits for events, which might be triggered before the actual send returns.
     const response = await this.userEventResponse(userOp)
@@ -361,7 +350,7 @@ export class AASigner extends Signer {
     return response
   }
 
-  async syncAccount (): Promise<void> {
+  async syncAccount(): Promise<void> {
     if (this._account == null) {
       const address = await getAccountAddress(await this.signer.getAddress(), this.accountFactory)
       this._account = SimpleAccount__factory.connect(address, this.signer)
@@ -379,18 +368,18 @@ export class AASigner extends Signer {
   }
 
   // return true if account not yet created.
-  async isPhantom (): Promise<boolean> {
+  async isPhantom(): Promise<boolean> {
     await this.syncAccount()
     return this._isPhantom
   }
 
-  async _createUserOperation (transaction: Deferrable<TransactionRequest>): Promise<UserOperation> {
+  async _createUserOperation(transaction: Deferrable<TransactionRequest>): Promise<UserOperation> {
     const tx: TransactionRequest = await resolveProperties(transaction)
     await this.syncAccount()
 
-    let initCode: BytesLike | undefined
+    let factoryData: BytesLike | undefined
     if (this._isPhantom) {
-      initCode = getAccountInitCode(await this.signer.getAddress(), this.accountFactory)
+      factoryData = getAccountInitCode(await this.signer.getAddress(), this.accountFactory)
     }
     const execFromEntryPoint = await this._account!.populateTransaction.execute(tx.to!, tx.value ?? 0, tx.data!)
 
@@ -403,7 +392,7 @@ export class AASigner extends Signer {
     }
     const userOp = await fillAndSign({
       sender: this._account!.address,
-      nonce: initCode == null ? tx.nonce : this.index,
+      nonce: factoryData == null ? tx.nonce : this.index,
       callData: execFromEntryPoint.data!,
       callGasLimit: tx.gasLimit,
       maxPriorityFeePerGas,

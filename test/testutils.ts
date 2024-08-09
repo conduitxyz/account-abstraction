@@ -314,6 +314,12 @@ export function packAccountGasLimits (verificationGasLimit: BigNumberish, callGa
   ])
 }
 
+export function packFactoryData (factory: string, factoryData: BigNumberish): string {
+  return ethers.utils.hexConcat([
+    factory, hexZeroPad(hexlify(factoryData, { hexPad: 'left' }), 16)
+  ])
+}
+
 export function packPaymasterData (paymaster: string, paymasterVerificationGasLimit: BytesLike | Hexable | number | bigint, postOpGasLimit: BytesLike | Hexable | number | bigint, paymasterData: string): string {
   return ethers.utils.hexConcat([
     paymaster, hexZeroPad(hexlify(paymasterVerificationGasLimit, { hexPad: 'left' }), 16),

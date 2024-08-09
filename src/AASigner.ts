@@ -7,7 +7,7 @@ import { BigNumber, Bytes, ethers, Event, Signer } from 'ethers'
 import { clearInterval } from 'timers'
 import { decodeRevertReason, getAccountAddress, getAccountInitCode } from './utils'
 import { fillAndSign, getUserOpHash, packUserOp } from './UserOp'
-import { PackedUserOperation, UserOperation } from './types/UserOperation'
+import { PackedUserOperation, UserOperation } from './types'
 import {
   EntryPoint,
   EntryPoint__factory,

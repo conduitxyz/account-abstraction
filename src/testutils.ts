@@ -21,7 +21,7 @@ import {
 } from '../typechain'
 import { BytesLike, Hexable } from '@ethersproject/bytes'
 import { expect } from 'chai'
-import { UserOperation } from './UserOperation'
+import { UserOperation } from './types/UserOperation'
 import { packUserOp, simulateValidation } from './UserOp'
 
 export const AddressZero = ethers.constants.AddressZero

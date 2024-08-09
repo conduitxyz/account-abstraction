@@ -18,7 +18,7 @@ import { ecsign, toRpcSig, keccak256 as keccak256_buffer } from 'ethereumjs-util
 import {
   EntryPoint, EntryPointSimulations__factory
 } from '../typechain'
-import { PackedUserOperation, UserOperation } from './UserOperation'
+import { PackedUserOperation, UserOperation } from './types/UserOperation'
 import { Create2Factory } from '../src/Create2Factory'
 import { TransactionRequest } from '@ethersproject/abstract-provider'
 

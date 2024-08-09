@@ -30,7 +30,6 @@ import {
 
   let sendUserOp
 
-  // if (aa_url != null) {
   // make sure that the node supports our EntryPoint
   const aaProvider = new providers.JsonRpcProvider(aaUrl)
   sendUserOp = rpcUserOpSender(aaProvider, ENTRYPOINT_0_7_0_ADDRESS)
@@ -39,8 +38,6 @@ import {
   if (!supportedEntryPoints.includes(ENTRYPOINT_0_7_0_ADDRESS)) {
     console.error('ERROR: node', aaUrl, 'does not support our EntryPoint')
   }
-  // TODO fix localUserOpSender later
-  // } else { sendUserOp = localUserOpSender(ENTRYPOINT_0_7_0_ADDRESS, ethersSigner) }
 
   const aaSigner = new AASigner(ethersSigner, ENTRYPOINT_0_7_0_ADDRESS, sendUserOp, SIMPLE_ACCOUNT_FACTORY_ADDRESS, aaIndex)
   // TODO create the smart account if it does not exist
@@ -58,12 +55,6 @@ import {
   console.log('account address=', aaAccountAddress)
   let preDeposit = await entryPoint.balanceOf(aaAccountAddress)
   console.log('current deposit=', preDeposit, 'current balance', await provider.getBalance(aaAccountAddress))
-
-  if (preDeposit.lte(parseEther('0.005'))) {
-    console.log('depositing for account')
-    await entryPoint.depositTo(aaAccountAddress, { value: parseEther('0.01') })
-    preDeposit = await entryPoint.balanceOf(aaAccountAddress)
-  }
 
   const testCounter = TestCounter__factory.connect(TEST_COUNTER_ADDRESS, aaSigner)
 

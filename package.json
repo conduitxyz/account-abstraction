@@ -20,7 +20,8 @@
     "ci-gas-calc": "yarn gas-calc && yarn check-gas-reports",
     "check-gas-reports": "./scripts/check-gas-reports",
     "runop": "hardhat run scripts/runop.ts",
-    "createAccount": "hardhat run scripts/createAccount.ts"
+    "createAccount": "hardhat run scripts/createAccount.ts",
+    "fundAccount": "hardhat run scripts/fundAccount.ts"
   },
   "keywords": [],
   "author": "",

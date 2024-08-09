@@ -408,3 +408,17 @@ export async function findSimulationUserOpWithMin (f: (n: number) => Promise<Use
     }, min, max, delta
   )
 }
+
+
+// create 2 utilities
+export const CREATE2_FACTORY_ADDRESS = '0x4e59b44847b379578588920ca78fbf26c0b4956c'
+
+export function create2FactoryGetDeployedAddress (initCode: string, salt: BigNumberish): string {
+  const saltBytes32 = hexZeroPad(hexlify(salt), 32)
+  return '0x' + keccak256(hexConcat([
+    '0xff',
+    CREATE2_FACTORY_ADDRESS,
+    saltBytes32,
+    keccak256(initCode)
+  ])).slice(-40)
+}

@@ -12,14 +12,15 @@ import {
   packAccountGasLimits,
   packPaymasterData,
   packFactoryData,
-  rethrow
-} from './testutils'
+  rethrow,
+  create2FactoryGetDeployedAddress,
+  CREATE2_FACTORY_ADDRESS
+} from './utils'
 import { ecsign, toRpcSig, keccak256 as keccak256_buffer } from 'ethereumjs-util'
 import {
   EntryPoint, EntryPointSimulations__factory
 } from '../typechain'
 import { PackedUserOperation, UserOperation } from './types/UserOperation'
-import { Create2Factory } from '../src/Create2Factory'
 import { TransactionRequest } from '@ethersproject/abstract-provider'
 
 import EntryPointSimulationsJson from '../artifacts/contracts/core/EntryPointSimulations.sol/EntryPointSimulations.json'
@@ -148,10 +149,10 @@ export async function fillUserOp(op: Partial<UserOperation>, entryPoint?: EntryP
     if (op1.nonce == null) op1.nonce = 0
     if (op1.sender == null) {
       // hack: if the init contract is our known deployer, then we know what the address would be, without a view call
-      if (op.factory.toLowerCase() === Create2Factory.contractAddress.toLowerCase()) {
+      if (op.factory.toLowerCase() === CREATE2_FACTORY_ADDRESS.toLowerCase()) {
         const ctr = hexDataSlice(op.factoryData!, 32)
         const salt = hexDataSlice(op.factoryData!, 0, 32)
-        op1.sender = Create2Factory.getDeployedAddress(ctr, salt)
+        op1.sender = create2FactoryGetDeployedAddress(ctr, salt)
       } else {
         // console.log('\t== not our deployer. our=', Create2Factory.contractAddress, 'got', initAddr)
         if (provider == null) throw new Error('no entrypoint/provider')
@@ -224,6 +225,7 @@ export async function fillAndSign(op: Partial<UserOperation>, signer: Wallet | S
   delete op2.factory
   delete op2.factoryData
 
+  // TODO bad!
   const chainId = 77675 //await provider!.getNetwork().then(net => net.chainId)
   const message = arrayify(getUserOpHash(op2, entryPoint!.address, chainId))
 

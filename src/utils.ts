@@ -13,6 +13,7 @@ import {
   TestPaymasterRevertCustomError__factory, TestERC20__factory
 } from '../typechain'
 import { BytesLike, Hexable } from '@ethersproject/bytes'
+import { CREATE2_FACTORY_ADDRESS } from './constants'
 
 export const AddressZero = ethers.constants.AddressZero
 export const HashZero = ethers.constants.HashZero
@@ -165,9 +166,6 @@ export interface ValidationData {
   validAfter: number
   validUntil: number
 }
-
-// create 2 utilities
-export const CREATE2_FACTORY_ADDRESS = '0x4e59b44847b379578588920ca78fbf26c0b4956c'
 
 export function create2FactoryGetDeployedAddress (initCode: string, salt: BigNumberish): string {
   const saltBytes32 = hexZeroPad(hexlify(salt), 32)

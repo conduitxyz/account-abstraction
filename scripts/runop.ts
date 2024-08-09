@@ -2,11 +2,15 @@
 // "yarn run runop [--network ...]"
 
 import hre, { ethers } from 'hardhat'
-import { AASigner, localUserOpSender, rpcUserOpSender } from '../src/AASigner'
+import { AASigner, rpcUserOpSender } from '../src/AASigner'
 import { TestCounter__factory, EntryPoint__factory } from '../typechain'
 import { parseEther } from 'ethers/lib/utils'
 import { providers } from 'ethers'
-import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/index';
+import {
+  ENTRYPOINT_0_7_0_ADDRESS,
+  SIMPLE_ACCOUNT_FACTORY_ADDRESS,
+  TEST_COUNTER_ADDRESS
+} from '../src/constants'
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 (async () => {
@@ -21,12 +25,6 @@ import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/inde
     process.exit(1)
   }
 
-  const [entryPointAddress, testCounterAddress, accountFactoryAddress] = [
-    "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
-    "0x475d5a5B128c1846b86493b357e75E27201447B7",
-    "0x0ACDDd4868E24aad6A16573b416133F58795A916",
-  ]
-
   const provider = new ethers.providers.JsonRpcProvider(rpcUrl)
   const ethersSigner = new ethers.Wallet(signerPrivateKey, provider)
   const prefundAccountBalance = (await provider.getBalance(ethersSigner.address)).toString()
@@ -37,16 +35,16 @@ import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/inde
   // if (aa_url != null) {
   // make sure that the node supports our EntryPoint
   const aaProvider = new providers.JsonRpcProvider(aaUrl)
-  sendUserOp = rpcUserOpSender(aaProvider, entryPointAddress)
+  sendUserOp = rpcUserOpSender(aaProvider, ENTRYPOINT_0_7_0_ADDRESS)
   const supportedEntryPoints: string[] = await aaProvider.send('eth_supportedEntryPoints', []).then(ret => ret.map(ethers.utils.getAddress))
   console.log('node supported EntryPoints=', supportedEntryPoints)
-  if (!supportedEntryPoints.includes(entryPointAddress)) {
+  if (!supportedEntryPoints.includes(ENTRYPOINT_0_7_0_ADDRESS)) {
     console.error('ERROR: node', aaUrl, 'does not support our EntryPoint')
   }
   // TODO fix localUserOpSender later
-  // } else { sendUserOp = localUserOpSender(entryPointAddress, ethersSigner) }
+  // } else { sendUserOp = localUserOpSender(ENTRYPOINT_0_7_0_ADDRESS, ethersSigner) }
 
-  const aaSigner = new AASigner(ethersSigner, entryPointAddress, sendUserOp, accountFactoryAddress, aaIndex)
+  const aaSigner = new AASigner(ethersSigner, ENTRYPOINT_0_7_0_ADDRESS, sendUserOp, SIMPLE_ACCOUNT_FACTORY_ADDRESS, aaIndex)
   // TODO create the smart account if it does not exist
   // connect to pre-deployed account
   const aaAccountAddress = await aaSigner.getAddress()
@@ -58,7 +56,7 @@ import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/inde
   // usually, an account will deposit for itself (that is, get created using eth, run "addDeposit" for itself
   // and from there on will use deposit
   // for testing,
-  const entryPoint = EntryPoint__factory.connect(entryPointAddress, ethersSigner)
+  const entryPoint = EntryPoint__factory.connect(ENTRYPOINT_0_7_0_ADDRESS, ethersSigner)
   console.log('account address=', aaAccountAddress)
   let preDeposit = await entryPoint.balanceOf(aaAccountAddress)
   console.log('current deposit=', preDeposit, 'current balance', await provider.getBalance(aaAccountAddress))
@@ -69,7 +67,7 @@ import { TransactionReceipt } from '@ethersproject/abstract-provider/src.ts/inde
     preDeposit = await entryPoint.balanceOf(aaAccountAddress)
   }
 
-  const testCounter = TestCounter__factory.connect(testCounterAddress, aaSigner)
+  const testCounter = TestCounter__factory.connect(TEST_COUNTER_ADDRESS, aaSigner)
 
   const prebalance = await provider.getBalance(aaAccountAddress)
   console.log('balance=', prebalance.div(1e9).toString(), 'deposit=', preDeposit.div(1e9).toString())

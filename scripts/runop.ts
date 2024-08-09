@@ -24,46 +24,49 @@ import {
   }
 
   const provider = new ethers.providers.JsonRpcProvider(rpcUrl)
-  const ethersSigner = new ethers.Wallet(signerPrivateKey, provider)
-  const prefundAccountBalance = (await provider.getBalance(ethersSigner.address)).toString()
-  console.log(`using prefund account address ${ethersSigner.address} with balance ${prefundAccountBalance}`)
-
-  let sendUserOp
+  const signer = new ethers.Wallet(signerPrivateKey, provider)
 
   // make sure that the node supports our EntryPoint
   const aaProvider = new providers.JsonRpcProvider(aaUrl)
-  sendUserOp = rpcUserOpSender(aaProvider, ENTRYPOINT_0_7_0_ADDRESS)
-  const supportedEntryPoints: string[] = await aaProvider.send('eth_supportedEntryPoints', []).then(ret => ret.map(ethers.utils.getAddress))
-  console.log('node supported EntryPoints=', supportedEntryPoints)
+  const supportedEntryPoints: string[] = await aaProvider
+    .send('eth_supportedEntryPoints', [])
+    .then(ret => ret.map(ethers.utils.getAddress))
   if (!supportedEntryPoints.includes(ENTRYPOINT_0_7_0_ADDRESS)) {
-    console.error('ERROR: node', aaUrl, 'does not support our EntryPoint')
+    console.error(`ERROR: ${aaUrl}does not support our EntryPoint`)
+    process.exit(1)
   }
 
-  const aaSigner = new AASigner(ethersSigner, ENTRYPOINT_0_7_0_ADDRESS, sendUserOp, SIMPLE_ACCOUNT_FACTORY_ADDRESS, aaIndex)
+  const aaSigner = new AASigner(
+    signer,
+    ENTRYPOINT_0_7_0_ADDRESS,
+    rpcUserOpSender(aaProvider, ENTRYPOINT_0_7_0_ADDRESS),
+    SIMPLE_ACCOUNT_FACTORY_ADDRESS,
+    aaIndex
+  )
+
   // TODO create the smart account if it does not exist
   // connect to pre-deployed account
   const aaAccountAddress = await aaSigner.getAddress()
-  if (await provider.getBalance(aaAccountAddress) < parseEther('0.01')) {
-    console.log('prefund account')
-    await ethersSigner.sendTransaction({ to: aaAccountAddress, value: parseEther('0.01') })
+  const code = await provider.getCode(aaAccountAddress);
+  if (code.length <= 2) {
+    console.error(`ERROR: SimpleAccount for ${signer.address} index ${aaIndex} does not exist. Run "yarn run createAccount" first`)
+    process.exit(1);
   }
 
-  // usually, an account will deposit for itself (that is, get created using eth, run "addDeposit" for itself
-  // and from there on will use deposit
-  // for testing,
-  const entryPoint = EntryPoint__factory.connect(ENTRYPOINT_0_7_0_ADDRESS, ethersSigner)
+  console.log(`Using account ${aaAccountAddress}`)
+
+  const entryPoint = EntryPoint__factory.connect(ENTRYPOINT_0_7_0_ADDRESS, signer)
   console.log('account address=', aaAccountAddress)
-  let preDeposit = await entryPoint.balanceOf(aaAccountAddress)
-  console.log('current deposit=', preDeposit, 'current balance', await provider.getBalance(aaAccountAddress))
+  const aaAccountGasBalance = await entryPoint.balanceOf(aaAccountAddress)
+  if (aaAccountGasBalance.eq(parseEther('0'))) {
+    console.error(`ERROR: ${aaAccountAddress} has no ether for gas. Run "yarn run fundAccount" first`)
+    process.exit(1);
+  }
 
   const testCounter = TestCounter__factory.connect(TEST_COUNTER_ADDRESS, aaSigner)
-
-  const prebalance = await provider.getBalance(aaAccountAddress)
-  console.log('balance=', prebalance.div(1e9).toString(), 'deposit=', preDeposit.div(1e9).toString())
-  console.log('estimate direct call', { gasUsed: await testCounter.connect(ethersSigner).estimateGas.justemit().then(t => t.toNumber()) })
-  const ret = await testCounter.justemit()
-  console.log('waiting for mine, hash (reqId)=', ret.hash)
-  const rcpt = await ret.wait()
+  const tx = await testCounter.justemit()
+  console.log(`Sent tx ${tx.hash}`)
+  await tx.wait()
 
   // const gasPaid = prebalance.sub(await provider.getBalance(aaAccountAddress))
   // const depositPaid = preDeposit.sub(await entryPoint.balanceOf(aaAccountAddress))

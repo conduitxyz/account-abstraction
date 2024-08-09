@@ -352,7 +352,7 @@ export class AASigner extends Signer {
 
   async syncAccount(): Promise<void> {
     if (this._account == null) {
-      const address = await getAccountAddress(await this.signer.getAddress(), this.accountFactory)
+      const address = await getAccountAddress(await this.signer.getAddress(), this.accountFactory, this.index)
       this._account = SimpleAccount__factory.connect(address, this.signer)
     }
 

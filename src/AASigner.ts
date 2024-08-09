@@ -41,35 +41,14 @@ export function rpcUserOpSender(provider: ethers.providers.JsonRpcProvider, entr
       chainId = await provider.getNetwork().then(net => net.chainId)
     }
 
-    // TODO this whole thing is a mess. clean it up.
     const cleanUserOp = Object.keys(userOp).map(key => {
       let val = (userOp as any)[key]
-      if (val === undefined) return [key, ""]
       if (typeof val !== 'string' || !val.startsWith('0x')) {
         val = hexValue(val)
       }
       return [key, val]
     })
       .reduce((set, [k, v]) => ({ ...set, [k]: v }), {})
-    if ('paymaster' in cleanUserOp) {
-      delete cleanUserOp['paymaster'];
-    }
-    if ('paymasterData' in cleanUserOp) {
-      delete cleanUserOp['paymasterData'];
-    }
-    if ('paymasterVerificationGasLimit' in cleanUserOp) {
-      delete cleanUserOp['paymasterVerificationGasLimit'];
-    }
-    if ('paymasterPostOpGasLimit' in cleanUserOp) {
-      delete cleanUserOp['paymasterPostOpGasLimit'];
-    }
-    if ('factory' in cleanUserOp && cleanUserOp['factory'] === '0x') {
-      delete cleanUserOp['factory'];
-    }
-    if ('factoryData' in cleanUserOp && cleanUserOp['factoryData'] === '0x') {
-      delete cleanUserOp['factoryData'];
-    }
-    console.log("cleanUserOp", cleanUserOp)
 
     await provider.send('eth_sendUserOperation', [cleanUserOp, entryPointAddress]).catch(e => {
       throw e.error ?? e

@@ -81,21 +81,15 @@ export function getUserOpHash(op: UserOperation, entryPoint: string, chainId: nu
   return keccak256(enc)
 }
 
-export const DefaultsForUserOp: UserOperation = {
+export const DefaultsForUserOp: Partial<UserOperation> = {
   sender: AddressZero,
   nonce: 0,
-  factory: '0x',
-  factoryData: '0x',
   callData: '0x',
   callGasLimit: 0,
   verificationGasLimit: 150000, // default verification gas. will add create2 cost (3200+200*length) if initCode exists
   preVerificationGas: 46000, // should also cover calldata cost.
   maxFeePerGas: 0,
   maxPriorityFeePerGas: 1e9,
-  paymaster: AddressZero,
-  paymasterData: '0x',
-  paymasterVerificationGasLimit: 3e5,
-  paymasterPostOpGasLimit: 0,
   signature: '0x'
 }
 

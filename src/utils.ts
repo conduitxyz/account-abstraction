@@ -13,7 +13,7 @@ import {
   TestPaymasterRevertCustomError__factory, TestERC20__factory
 } from '../typechain'
 import { BytesLike, Hexable } from '@ethersproject/bytes'
-import { CREATE2_FACTORY_ADDRESS } from './constants'
+import { CREATE2_FACTORY_ADDRESS } from './constants/addresses'
 
 export const AddressZero = ethers.constants.AddressZero
 export const HashZero = ethers.constants.HashZero

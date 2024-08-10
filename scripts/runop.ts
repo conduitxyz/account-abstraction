@@ -10,7 +10,7 @@ import {
   ENTRYPOINT_0_7_0_ADDRESS,
   SIMPLE_ACCOUNT_FACTORY_ADDRESS,
   TEST_COUNTER_ADDRESS
-} from '../src/constants/addresses'
+} from '../src/constants'
 
 (async () => {
   const rpcUrl = process.env.RPC_URL;

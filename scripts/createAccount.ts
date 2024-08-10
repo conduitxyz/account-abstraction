@@ -1,6 +1,6 @@
 import { ethers } from 'ethers'
 import { SimpleAccountFactory__factory } from '../typechain'
-import { SIMPLE_ACCOUNT_FACTORY_ADDRESS } from '../src/constants/addresses'
+import { SIMPLE_ACCOUNT_FACTORY_ADDRESS } from '../src/constants'
 
 (async () => {
   const rpcUrl = process.env.RPC_URL;

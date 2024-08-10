@@ -1,6 +1,6 @@
 import { BigNumber, ethers } from 'ethers'
 import { EntryPoint__factory, SimpleAccountFactory__factory } from '../typechain'
-import { ENTRYPOINT_0_7_0_ADDRESS, SIMPLE_ACCOUNT_FACTORY_ADDRESS } from '../src/constants/addresses'
+import { ENTRYPOINT_0_7_0_ADDRESS, SIMPLE_ACCOUNT_FACTORY_ADDRESS } from '../src/constants'
 import { parseEther, parseUnits, formatEther } from 'ethers/lib/utils'
 
 const ETHER_DEPOSIT_AMOUNT = '0.01';

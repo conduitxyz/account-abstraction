@@ -1,5 +1,4 @@
-import { BigNumberish } from 'ethers'
-import { BytesLike } from '@ethersproject/bytes'
+import { BigNumberish, BytesLike } from 'ethers'
 
 export type address = string
 export type uint256 = BigNumberish

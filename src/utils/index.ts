@@ -1,23 +1,22 @@
-import { ethers } from 'ethers'
 import {
+  ethers,
+  BigNumberish,
+  BytesLike,
+} from 'ethers'
+import {
+  Hexable,
   hexConcat,
   hexlify,
   hexZeroPad,
   Interface,
   keccak256,
 } from 'ethers/lib/utils'
-import { BigNumberish } from 'ethers'
+import { CREATE2_FACTORY_ADDRESS } from '../constants'
 import {
   EntryPoint__factory,
   SimpleAccountFactory,
   TestPaymasterRevertCustomError__factory, TestERC20__factory
-} from '../typechain'
-import { BytesLike, Hexable } from '@ethersproject/bytes'
-import { CREATE2_FACTORY_ADDRESS } from './constants/addresses'
-
-export const AddressZero = ethers.constants.AddressZero
-export const HashZero = ethers.constants.HashZero
-
+} from '../../typechain'
 
 export function callDataCost (data: string): number {
   return ethers.utils.arrayify(data)

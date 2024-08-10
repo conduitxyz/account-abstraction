@@ -4,9 +4,8 @@ import {
   hexDataSlice,
   keccak256
 } from 'ethers/lib/utils'
-import { BigNumber, Contract, Signer, Wallet } from 'ethers'
+import { ethers, BigNumber, Contract, Signer, Wallet } from 'ethers'
 import {
-  AddressZero,
   callDataCost,
   packAccountGasLimits,
   packPaymasterData,
@@ -14,7 +13,7 @@ import {
   rethrow,
   create2FactoryGetDeployedAddress,
 } from './utils'
-import { CREATE2_FACTORY_ADDRESS } from './constants/addresses'
+import { CREATE2_FACTORY_ADDRESS } from './constants'
 import { EntryPoint } from '../typechain'
 import { PackedUserOperation, UserOperation } from './types' 
 export function packUserOp(userOp: UserOperation): PackedUserOperation {
@@ -26,7 +25,7 @@ export function packUserOp(userOp: UserOperation): PackedUserOperation {
   }
   
   let paymasterAndData = '0x'
-  if (userOp.paymaster && userOp.paymaster !== AddressZero) {
+  if (userOp.paymaster && userOp.paymaster !== ethers.constants.AddressZero) {
     paymasterAndData = packPaymasterData(userOp.paymaster as string, userOp.paymasterVerificationGasLimit!, userOp.paymasterPostOpGasLimit!, userOp.paymasterData as string)
   }
   return {
@@ -72,7 +71,7 @@ export function getUserOpHash(op: UserOperation, entryPoint: string, chainId: nu
 }
 
 export const DefaultsForUserOp: Partial<UserOperation> = {
-  sender: AddressZero,
+  sender: ethers.constants.AddressZero,
   nonce: 0,
   callData: '0x',
   callGasLimit: 0,
@@ -154,7 +153,7 @@ export async function fillUserOp(op: Partial<UserOperation>, entryPoint?: EntryP
     // estimateGas assumes direct call from entryPoint. add wrapper cost.
     op1.callGasLimit = gasEtimated // .add(55000)
   }
-  if (op1.paymaster != null && op1.paymaster != AddressZero && op1.paymaster != '0x') {
+  if (op1.paymaster != null && op1.paymaster != ethers.constants.AddressZero && op1.paymaster != '0x') {
     if (op1.paymasterVerificationGasLimit == null) {
       op1.paymasterVerificationGasLimit = DefaultsForUserOp.paymasterVerificationGasLimit
     }

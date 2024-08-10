@@ -270,7 +270,7 @@ export class AASigner extends Signer {
         }
 
         const rcpt = await event.getTransactionReceipt()
-        console.log('got event with status=', event.args.success, 'gasUsed=', rcpt.gasUsed)
+        console.log(`Event success ${event.args.success}; gas used ${rcpt.gasUsed.toString()}`)
 
         // TODO: should use "userOpHash" as "transactionId" (but this has to be done in a provider, not a signer)
 

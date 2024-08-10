@@ -1,10 +1,5 @@
-import '@nomiclabs/hardhat-waffle'
 import '@typechain/hardhat'
 import { HardhatUserConfig } from 'hardhat/config'
-import 'hardhat-deploy'
-import '@nomiclabs/hardhat-etherscan'
-
-import 'solidity-coverage'
 
 const optimizedComilerSettings = {
   version: '0.8.23',

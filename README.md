@@ -1,11 +1,35 @@
-Implementation of contracts for [ERC-4337](https://eips.ethereum.org/EIPS/eip-4337) account abstraction via alternative mempool.
+# Conduit Account Abstraction Scripts
+## Installation
+```bash
+yarn
+```
 
-# Resources
+## Setup
+Create a .env file like `.example.env` and fill it in with the `RPC_URL` of your network and a `SIGNER_PRIVATE_KEY`.
+If Conduit's bundler is already deployed for your network, you can also put your `AA_URL` in the .env file, which is required for the `runop` script only.
 
-[Vitalik's post on account abstraction without Ethereum protocol changes](https://medium.com/infinitism/erc-4337-account-abstraction-without-ethereum-protocol-changes-d75c9d94dc4a)
+These scripts are designed to be used with Conduit's ERC4337 predeploys:
+```
+EntryPoint v0.7.0:    0x0000000071727De22E5E9d8BAf0edAc6f37da032
+SimpleAccountFactory: 0x0ACDDd4868E24aad6A16573b416133F58795A916
+TestCounter:          0x475d5a5B128c1846b86493b357e75E27201447B7
+```
+However, they should work on any chain where these contracts are present.
 
-[Discord server](http://discord.gg/fbDyENb6Y9)
+## Creating an Account
+```bash
+yarn createAccount
+```
 
-[Bundler reference implementation](https://github.com/eth-infinitism/bundler)
+## Funding an Account
+```bash
+yarn fundAccount
+```
+This will take `0.01` ether from the account associated with the `SIGNER_PRIVATE_KEY` and deposit it on behalf of the account your created in the previous step.
 
-[Bundler specification test suite](https://github.com/eth-infinitism/bundler-spec-tests)
+## Sending a test Transaction
+```bash
+yarn runop
+```
+The UserOp sent by this script emits a log from the `TestCounter` contract.
+However, this can be modified to send any kind of UserOp with the correct typechain types.

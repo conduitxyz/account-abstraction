@@ -60,31 +60,10 @@ import {
     process.exit(1);
   }
 
+  // NOTE: this can be modified to send any kind of UserOp with the correct typechain types.
+  // Just replace the `testCounter.justemit()` call with your own contract call.
   const testCounter = TestCounter__factory.connect(TEST_COUNTER_ADDRESS, aaSigner)
   const tx = await testCounter.justemit()
   console.log(`Sent tx ${tx.hash}`)
   await tx.wait()
-
-  // const gasPaid = prebalance.sub(await provider.getBalance(aaAccountAddress))
-  // const depositPaid = preDeposit.sub(await entryPoint.balanceOf(aaAccountAddress))
-  // console.log('paid (from balance)=', gasPaid.toNumber() / 1e9, 'paid (from deposit)', depositPaid.div(1e9).toString(), 'gasUsed=', rcpt.gasUsed)
-  // const logs = await entryPoint.queryFilter('*' as any, rcpt.blockNumber)
-  // console.log(logs.map((e: any) => ({ ev: e.event, ...objdump(e.args!) })))
-  // console.log('1st run gas used:', await evInfo(rcpt))
-
-  // const ret1 = await testCounter.justemit()
-  // const rcpt2 = await ret1.wait()
-  // console.log('2nd run:', await evInfo(rcpt2))
-
-  // async function evInfo (rcpt: TransactionReceipt): Promise<any> {
-  //   // TODO: checking only latest block...
-  //   const block = rcpt.blockNumber
-  //   const ev = await entryPoint.queryFilter(entryPoint.filters.UserOperationEvent(), block)
-  //   // if (ev.length === 0) return {}
-  //   return ev.map(event => {
-  //     const { nonce, actualGasUsed } = event.args
-  //     const gasUsed = rcpt.gasUsed.toNumber()
-  //     return { nonce: nonce.toNumber(), gasPaid, gasUsed: gasUsed, diff: gasUsed - actualGasUsed.toNumber() }
-  //   })
-  // }
 })()

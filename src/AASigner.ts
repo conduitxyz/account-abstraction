@@ -1,4 +1,4 @@
-import { TransactionResponse, BytesLike, BigNumber, Bytes, ethers, Event, Signer } from 'ethers'
+import { BytesLike, BigNumber, Bytes, ethers, Event, Signer } from 'ethers' // TransactionResponse
 import { hexValue } from 'ethers/lib/utils'
 import { BaseProvider, Provider, TransactionRequest } from '@ethersproject/providers'
 import { Deferrable, resolveProperties } from '@ethersproject/properties'
@@ -16,7 +16,7 @@ import {
   SimpleAccount__factory
 } from '../typechain'
 
-export type SendUserOp = (userOp: UserOperation) => Promise<TransactionResponse | undefined>
+export type SendUserOp = (userOp: UserOperation) => Promise<any | undefined> // Promise<TransactionResponse | undefined>
 
 export const debug = process.env.DEBUG != null
 
@@ -242,7 +242,7 @@ export class AASigner extends Signer {
   }
 
   // fabricate a response in a format usable by ethers users...
-  async userEventResponse(userOp: UserOperation): Promise<TransactionResponse> {
+  async userEventResponse(userOp: UserOperation): Promise<any> { // Promise<TranactionResponse> {
     const entryPoint = this.entryPoint
     const userOpHash = getUserOpHash(userOp, entryPoint.address, await this._chainId!)
     const provider = entryPoint.provider
@@ -304,7 +304,7 @@ export class AASigner extends Signer {
         }
       }), 500)
     })
-    const resp: TransactionResponse = {
+    const resp: any = { // : TransactionResponse = {
       hash: userOpHash,
       confirmations: 0,
       from: userOp.sender,
@@ -320,7 +320,7 @@ export class AASigner extends Signer {
     return resp
   }
 
-  async sendTransaction(transaction: Deferrable<TransactionRequest>): Promise<TransactionResponse> {
+  async sendTransaction(transaction: Deferrable<TransactionRequest>): Promise<any> { // Promise<TransactionResponse> {
     const userOp = await this._createUserOperation(transaction)
     // get response BEFORE sending request: the response waits for events, which might be triggered before the actual send returns.
     const response = await this.userEventResponse(userOp)

@@ -1,9 +1,9 @@
-import { BigNumber, ethers } from 'ethers'
+import { ethers } from 'ethers'
 import { EntryPoint__factory, SimpleAccountFactory__factory } from '../typechain'
 import { ENTRYPOINT_0_7_0_ADDRESS, SIMPLE_ACCOUNT_FACTORY_ADDRESS } from '../src/constants'
-import { parseEther, parseUnits, formatEther } from 'ethers/lib/utils'
+import { parseEther, formatEther } from 'ethers/lib/utils'
 
-const ETHER_DEPOSIT_AMOUNT = '0.001';
+const ethDepositAmount = process.env.ETHER_DEPOSIT_AMOUNT ?? '0.001';
 
 (async () => {
   const rpcUrl = process.env.RPC_URL;
@@ -22,11 +22,11 @@ const ETHER_DEPOSIT_AMOUNT = '0.001';
   const entryPoint = EntryPoint__factory.connect(ENTRYPOINT_0_7_0_ADDRESS, signer)
   const accountAddress = await accountFactory.getAddress(signer.address, aaIndex)
 
-  console.log(`Depositing ${ETHER_DEPOSIT_AMOUNT} ether`)
+  console.log(`Depositing ${ethDepositAmount} ether`)
   const oldBalance = await entryPoint.balanceOf(accountAddress)
   console.log(`Old account balance: ${formatEther(oldBalance)}`);
   
-  const tx = await entryPoint.depositTo(accountAddress, { value: parseEther(ETHER_DEPOSIT_AMOUNT) })
+  const tx = await entryPoint.depositTo(accountAddress, { value: parseEther(ethDepositAmount) })
   await tx.wait()
 
   const newBalance = await entryPoint.balanceOf(accountAddress)

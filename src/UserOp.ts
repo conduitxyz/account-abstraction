@@ -164,7 +164,7 @@ export async function fillUserOp(op: Partial<UserOperation>, entryPoint?: EntryP
   if (op1.maxFeePerGas == null) {
     if (provider == null) throw new Error('must have entryPoint to autofill maxFeePerGas')
     const block = await provider.getBlock('latest')
-    op1.maxFeePerGas = block.baseFeePerGas!.add(op1.maxPriorityFeePerGas ?? DefaultsForUserOp.maxPriorityFeePerGas)
+    op1.maxFeePerGas = block.baseFeePerGas!.add(op1.maxPriorityFeePerGas ?? DefaultsForUserOp.maxPriorityFeePerGas!)
   }
   // TODO: this is exactly what fillUserOp below should do - but it doesn't.
   // adding this manually

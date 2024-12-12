@@ -324,7 +324,11 @@ export class AASigner extends Signer {
     const userOp = await this._createUserOperation(transaction)
     // get response BEFORE sending request: the response waits for events, which might be triggered before the actual send returns.
     const response = await this.userEventResponse(userOp)
+
+    const startTime = Date.now();
     await this.sendUserOp(userOp)
+    const endTime = Date.now();
+    console.log(`sendUserOp latency: ${(endTime - startTime) / 1000} seconds`);
     return response
   }
 

@@ -8,7 +8,7 @@ yarn
 Create a .env file like `.example.env` and fill it in with the `RPC_URL` of your network and a `SIGNER_PRIVATE_KEY`.
 If Conduit's bundler is already deployed for your network, you can also put your `AA_URL` in the .env file, which is required for the `runop` script only.
 
-These scripts are designed to be used with Conduit's ERC4337 predeploys:
+These scripts are designed to be used with Conduit's ERC-4337 predeploys:
 ```
 EntryPoint v0.7.0:    0x0000000071727De22E5E9d8BAf0edAc6f37da032
 SimpleAccountFactory: 0x0ACDDd4868E24aad6A16573b416133F58795A916

@@ -1,5 +1,5 @@
 import { BytesLike, BigNumber, Bytes, ethers, Event, Signer } from 'ethers' // TransactionResponse
-import { hexValue } from 'ethers/lib/utils'
+import { hexlify, hexValue } from 'ethers/lib/utils'
 import { BaseProvider, Provider, TransactionRequest } from '@ethersproject/providers'
 import { Deferrable, resolveProperties } from '@ethersproject/properties'
 import { TransactionReceipt } from '@ethersproject/abstract-provider'
@@ -201,6 +201,7 @@ export class AASigner extends Signer {
   _account?: SimpleAccount
 
   private _isPhantom = true
+  private readonly configuredAccountAddress?: string
   public entryPoint: EntryPoint
   public accountFactory: SimpleAccountFactory
 
@@ -213,10 +214,11 @@ export class AASigner extends Signer {
    * @param sendUserOp function to actually send the UserOp to the entryPoint.
    * @param index - index of this account for this signer.
    */
-  constructor(readonly signer: Signer, readonly entryPointAddress: string, readonly sendUserOp: SendUserOp, readonly accountFactoryAddress: string, readonly index = 0, readonly provider = signer.provider) {
+  constructor(readonly signer: Signer, readonly entryPointAddress: string, readonly sendUserOp: SendUserOp, readonly accountFactoryAddress: string, readonly index = 0, readonly provider = signer.provider, configuredAccountAddress?: string, readonly useEip712 = false) {
     super()
     this.entryPoint = EntryPoint__factory.connect(entryPointAddress, signer)
     this.accountFactory = SimpleAccountFactory__factory.connect(accountFactoryAddress, signer)
+    this.configuredAccountAddress = configuredAccountAddress
   }
 
   connect(provider: Provider): Signer {
@@ -244,7 +246,12 @@ export class AASigner extends Signer {
   // fabricate a response in a format usable by ethers users...
   async userEventResponse(userOp: UserOperation): Promise<any> { // Promise<TranactionResponse> {
     const entryPoint = this.entryPoint
-    const userOpHash = getUserOpHash(userOp, entryPoint.address, await this._chainId!)
+    let userOpHash: string
+    if (this.useEip712) {
+      userOpHash = await entryPoint.getUserOpHash(packUserOp(userOp))
+    } else {
+      userOpHash = getUserOpHash(userOp, entryPoint.address, await this._chainId!)
+    }
     const provider = entryPoint.provider
     const currentBLock = provider.getBlockNumber()
 
@@ -334,7 +341,7 @@ export class AASigner extends Signer {
 
   async syncAccount(): Promise<void> {
     if (this._account == null) {
-      const address = await getAccountAddress(await this.signer.getAddress(), this.accountFactory, this.index)
+      const address = this.configuredAccountAddress ?? await getAccountAddress(await this.signer.getAddress(), this.accountFactory, this.index)
       this._account = SimpleAccount__factory.connect(address, this.signer)
     }
 
@@ -359,9 +366,17 @@ export class AASigner extends Signer {
     const tx: TransactionRequest = await resolveProperties(transaction)
     await this.syncAccount()
 
+    let factory: string | undefined
     let factoryData: BytesLike | undefined
     if (this._isPhantom) {
-      factoryData = getAccountInitCode(await this.signer.getAddress(), this.accountFactory)
+      if (this.configuredAccountAddress != null) {
+        throw new Error(`Configured account ${this.configuredAccountAddress} is not deployed`)
+      }
+      // getAccountInitCode returns packed initCode (factory address + calldata as a single blob).
+      // Split into separate factory/factoryData fields for the UserOperation RPC format.
+      const initCode = hexlify(getAccountInitCode(await this.signer.getAddress(), this.accountFactory, this.index))
+      factory = initCode.slice(0, 42) // 0x + 20 bytes address
+      factoryData = '0x' + initCode.slice(42)
     }
     const execFromEntryPoint = await this._account!.populateTransaction.execute(tx.to!, tx.value ?? 0, tx.data!)
 
@@ -374,12 +389,15 @@ export class AASigner extends Signer {
     }
     const userOp = await fillAndSign({
       sender: this._account!.address,
-      nonce: factoryData == null ? tx.nonce : this.index,
+      nonce: factory != null ? this.index : tx.nonce,
+      factory,
+      factoryData,
+      ...(factory != null ? { verificationGasLimit: 500000 } : {}),
       callData: execFromEntryPoint.data!,
       callGasLimit: tx.gasLimit,
       maxPriorityFeePerGas,
       maxFeePerGas
-    }, this.signer, this.entryPoint)
+    }, this.signer, this.entryPoint, 'getNonce', this.useEip712)
 
     return userOp
   }

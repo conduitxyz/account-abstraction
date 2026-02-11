@@ -176,18 +176,36 @@ export async function fillUserOp(op: Partial<UserOperation>, entryPoint?: EntryP
   return op2
 }
 
-export async function fillAndSign(op: Partial<UserOperation>, signer: Wallet | Signer, entryPoint?: EntryPoint, getNonceFunction = 'getNonce'): Promise<UserOperation> {
+export async function fillAndSign(op: Partial<UserOperation>, signer: Wallet | Signer, entryPoint?: EntryPoint, getNonceFunction = 'getNonce', useEip712 = false): Promise<UserOperation> {
   const op2 = await fillUserOp(op, entryPoint, getNonceFunction)
 
-  const chainId = await signer.provider!.getNetwork().then(net => net.chainId)
-  const message = arrayify(getUserOpHash(op2, entryPoint!.address, chainId))
+  let message: Uint8Array
+  if (useEip712) {
+    // v0.8+ uses EIP-712 typed data hashing on-chain. Query the EntryPoint
+    // for the canonical hash and sign it directly (no personal_sign prefix),
+    // matching SimpleAccount's ECDSA.recover(userOpHash, signature).
+    const packedOp = packUserOp(op2)
+    const hash = await entryPoint!.getUserOpHash(packedOp)
+    message = arrayify(hash)
+  } else {
+    const chainId = await signer.provider!.getNetwork().then(net => net.chainId)
+    message = arrayify(getUserOpHash(op2, entryPoint!.address, chainId))
+  }
 
   let signature
-  try {
-    signature = await signer.signMessage(message)
-  } catch (err: any) {
-    // attempt to use 'eth_sign' instead of 'personal_sign' which is not supported by Foundry Anvil
-    signature = await (signer as any)._legacySignMessage(message)
+  if (useEip712) {
+    // v0.8+ SimpleAccount does ECDSA.recover(userOpHash, sig) directly,
+    // so sign the raw hash without the personal_sign prefix.
+    signature = ethers.utils.joinSignature(
+      (signer as Wallet)._signingKey().signDigest(message)
+    )
+  } else {
+    try {
+      signature = await signer.signMessage(message)
+    } catch (err: any) {
+      // attempt to use 'eth_sign' instead of 'personal_sign' which is not supported by Foundry Anvil
+      signature = await (signer as any)._legacySignMessage(message)
+    }
   }
   return {
     ...op2,

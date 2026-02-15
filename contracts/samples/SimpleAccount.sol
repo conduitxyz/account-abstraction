@@ -14,11 +14,11 @@ import "../core/Helpers.sol";
 import "./callback/TokenCallbackHandler.sol";
 
 /**
-  * minimal account.
-  *  this is sample minimal account.
-  *  has execute, eth handling methods
-  *  has a single signer that can send requests through the entryPoint.
-  */
+ * @title SimpleAccount
+ * @notice Minimal sample account contract.
+ * - Supports execute and ETH handling methods.
+ * - Has a single owner that can send requests through the EntryPoint.
+ */
 contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, Initializable {
     address public owner;
 
@@ -36,24 +36,29 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
         return _entryPoint;
     }
 
-    // solhint-disable-next-line no-empty-blocks
+    // Accept ETH transfers
     receive() external payable {}
 
+    /**
+     * @dev The EntryPoint is immutable to reduce gas.
+     * To upgrade the EntryPoint, deploy a new implementation that points
+     * to the new EntryPoint and then upgrade via `upgradeTo()`.
+     */
     constructor(IEntryPoint anEntryPoint) {
         _entryPoint = anEntryPoint;
         _disableInitializers();
     }
 
     function _onlyOwner() internal view {
-        //directly from EOA owner, or through the account itself (which gets redirected through execute())
+        // Directly from the EOA owner, or via the account itself (e.g., through execute()).
         require(msg.sender == owner || msg.sender == address(this), "only owner");
     }
 
     /**
-     * execute a transaction (called directly from owner, or by entryPoint)
-     * @param dest destination address to call
-     * @param value the value to pass in this call
-     * @param func the calldata to pass in this call
+     * @notice Execute a transaction (callable by the owner or EntryPoint).
+     * @param dest Destination address to call.
+     * @param value ETH value to send with the call.
+     * @param func Calldata for the call.
      */
     function execute(address dest, uint256 value, bytes calldata func) external {
         _requireFromEntryPointOrOwner();
@@ -61,11 +66,12 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
     }
 
     /**
-     * execute a sequence of transactions
-     * @dev to reduce gas consumption for trivial case (no value), use a zero-length array to mean zero value
-     * @param dest an array of destination addresses
-     * @param value an array of values to pass to each call. can be zero-length for no-value calls
-     * @param func an array of calldata to pass to each call
+     * @notice Execute a sequence of transactions.
+     * @dev To reduce gas for the trivial case (no value), pass a zero-length `value` array
+     *      to indicate all calls should use zero value.
+     * @param dest Array of destination addresses.
+     * @param value Array of ETH values to send with each call. May be zero-length for no-value calls.
+     * @param func Array of calldatas for each call.
      */
     function executeBatch(address[] calldata dest, uint256[] calldata value, bytes[] calldata func) external {
         _requireFromEntryPointOrOwner();
@@ -82,10 +88,8 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
     }
 
     /**
-     * @dev The _entryPoint member is immutable, to reduce gas consumption.  To upgrade EntryPoint,
-     * a new implementation of SimpleAccount must be deployed with the new EntryPoint address, then upgrading
-      * the implementation by calling `upgradeTo()`
-      * @param anOwner the owner (signer) of this account
+     * @notice Initialize the account with an owner.
+     * @param anOwner The owner (signer) of this account.
      */
     function initialize(address anOwner) public virtual initializer {
         _initialize(anOwner);
@@ -96,17 +100,22 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
         emit SimpleAccountInitialized(_entryPoint, owner);
     }
 
-    // Require the function call went through EntryPoint or owner
+    /// @dev Require the call to come from the EntryPoint or the owner.
     function _requireFromEntryPointOrOwner() internal view {
         require(msg.sender == address(entryPoint()) || msg.sender == owner, "account: not Owner or EntryPoint");
     }
 
-    /// implement template method of BaseAccount
+    /// @inheritdoc BaseAccount
     function _validateSignature(PackedUserOperation calldata userOp, bytes32 userOpHash)
-    internal override virtual returns (uint256 validationData) {
+        internal
+        override
+        virtual
+        returns (uint256 validationData)
+    {
         bytes32 hash = MessageHashUtils.toEthSignedMessageHash(userOpHash);
-        if (owner != ECDSA.recover(hash, userOp.signature))
+        if (owner != ECDSA.recover(hash, userOp.signature)) {
             return SIG_VALIDATION_FAILED;
+        }
         return SIG_VALIDATION_SUCCESS;
     }
 
@@ -120,31 +129,32 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
     }
 
     /**
-     * check current account deposit in the entryPoint
+     * @notice Get this account's deposit held in the EntryPoint.
      */
     function getDeposit() public view returns (uint256) {
         return entryPoint().balanceOf(address(this));
     }
 
     /**
-     * deposit more funds for this account in the entryPoint
+     * @notice Deposit more funds for this account in the EntryPoint.
      */
     function addDeposit() public payable {
         entryPoint().depositTo{value: msg.value}(address(this));
     }
 
     /**
-     * withdraw value from the account's deposit
-     * @param withdrawAddress target to send to
-     * @param amount to withdraw
+     * @notice Withdraw funds from this account's EntryPoint deposit.
+     * @param withdrawAddress Target address to receive the withdrawn amount.
+     * @param amount Amount to withdraw.
      */
     function withdrawDepositTo(address payable withdrawAddress, uint256 amount) public onlyOwner {
         entryPoint().withdrawTo(withdrawAddress, amount);
     }
 
-    function _authorizeUpgrade(address newImplementation) internal view override {
+    // UUPS authorization hook
+    function _authorizeUpgrade(address newImplementation) internal override {
+        // Silence compiler warning about unused variable without incurring overhead
         (newImplementation);
         _onlyOwner();
     }
 }
-
